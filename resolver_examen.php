@@ -9,6 +9,8 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $usuario_id = $_SESSION['usuario_id'];
 
+
+
 $examen = $conn->query("
 SELECT *
 FROM examenes
@@ -21,7 +23,19 @@ if (!$examen) {
 }
 
 $examen_id = $examen['id'];
+$verificar = $conn->query("
+SELECT COUNT(*) AS total
+FROM intentos
+WHERE usuario_id = $usuario_id
+AND examen_id = $examen_id
+AND finalizado IN (0, 1)
+");
 
+$datos = $verificar->fetch_assoc();
+
+if($datos['total'] >= 2){
+    die("Ya utilizó los 2 intentos permitidos para este examen.");
+}
 $ip = $_SERVER['REMOTE_ADDR'];
 $navegador = $_SERVER['HTTP_USER_AGENT'];
 
