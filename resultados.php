@@ -1,137 +1,365 @@
 <?php
+
 session_start();
 require_once "conexion.php";
+
+/*
+|--------------------------------------------------------------------------
+| Validar sesión
+|--------------------------------------------------------------------------
+*/
 
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
     exit;
 }
 
-if ($_SESSION['rol'] != 'docente') {
+if (
+    !isset($_SESSION['rol']) ||
+    $_SESSION['rol'] !== 'docente'
+) {
     die("Acceso denegado.");
 }
 
-$resultados = $conn->query("
-SELECT
-    i.id,
-    u.nombre,
-    u.correo,
-    i.nota,
-    i.fecha_inicio,
-    i.fecha_fin,
-    i.cambios_pestana
-FROM intentos i
-INNER JOIN usuarios u
-ON i.usuario_id = u.id
-WHERE i.finalizado = 1
-ORDER BY i.id DESC
+/*
+|--------------------------------------------------------------------------
+| Obtener examen seleccionado
+|--------------------------------------------------------------------------
+*/
+
+$examen_id = isset($_GET['examen_id'])
+    ? (int) $_GET['examen_id']
+    : 0;
+
+/*
+|--------------------------------------------------------------------------
+| Obtener únicamente exámenes publicados
+|--------------------------------------------------------------------------
+*/
+
+$stmtExamenes = $conn->prepare("
+    SELECT
+        id,
+        titulo,
+        estado,
+        mostrar_respuestas
+    FROM examenes
+    WHERE estado = 'publicado'
+    ORDER BY id DESC
 ");
+
+$stmtExamenes->execute();
+
+$examenes = $stmtExamenes->get_result();
+
+/*
+|--------------------------------------------------------------------------
+| Obtener examen seleccionado y sus resultados
+|--------------------------------------------------------------------------
+*/
+
+$examenSeleccionado = null;
+$resultados = null;
+
+if ($examen_id > 0) {
+
+    $stmtExamen = $conn->prepare("
+        SELECT
+            id,
+            titulo,
+            estado,
+            mostrar_respuestas
+        FROM examenes
+        WHERE id = ?
+          AND estado = 'publicado'
+        LIMIT 1
+    ");
+
+    $stmtExamen->bind_param(
+        "i",
+        $examen_id
+    );
+
+    $stmtExamen->execute();
+
+    $resultadoExamen =
+        $stmtExamen->get_result();
+
+    $examenSeleccionado =
+        $resultadoExamen->fetch_assoc();
+
+    if (!$examenSeleccionado) {
+        die("El examen no existe o ya no está publicado.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Obtener resultados del examen seleccionado
+    |--------------------------------------------------------------------------
+    */
+
+    $stmtResultados = $conn->prepare("
+        SELECT
+            i.id,
+            u.nombre,
+            u.correo,
+            i.nota,
+            i.fecha_inicio,
+            i.fecha_fin,
+            i.cambios_pestana
+        FROM intentos i
+        INNER JOIN usuarios u
+            ON u.id = i.usuario_id
+        WHERE i.finalizado = 1
+          AND i.examen_id = ?
+        ORDER BY i.id DESC
+    ");
+
+    $stmtResultados->bind_param(
+        "i",
+        $examen_id
+    );
+
+    $stmtResultados->execute();
+
+    $resultados =
+        $stmtResultados->get_result();
+}
+
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Resultados</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+
+    <link
+        rel="stylesheet"
+        href="assets/css/style.css"
+    >
+
 </head>
+
 <body>
 
-<div class="container" style="max-width:1200px;">
+<div
+    class="container"
+    style="max-width:1200px;"
+>
 
     <div class="card">
 
         <h1>Resultados del Examen</h1>
-        <?php
-$examen = $conn->query("
-    SELECT id, mostrar_respuestas
-    FROM examenes
-    WHERE estado='publicado'
-    LIMIT 1
-")->fetch_assoc();
-?>
 
-<?php if($examen): ?>
+        <form
+            method="GET"
+            action="resultados.php"
+        >
 
-    <?php if($examen['mostrar_respuestas'] == 1): ?>
-        <a href="cambiar_mostrar_respuestas.php?valor=0" class="btn btn-salir">
-            Ocultar respuestas a alumnos
-        </a>
-    <?php else: ?>
-        <a href="cambiar_mostrar_respuestas.php?valor=1" class="btn">
-            Mostrar respuestas a alumnos
-        </a>
-    <?php endif; ?>
+            <label for="examen_id">
+                Seleccione un examen publicado
+            </label>
 
-<?php endif; ?>
-<br>
-<a href="exportar_notas.php" class="btn">
-    Exportar notas CSV
-</a>
-        <table class="tabla">
+            <select
+                name="examen_id"
+                id="examen_id"
+                class="input"
+                onchange="this.form.submit()"
+            >
 
-            <thead>
-                <tr>
-                    <th>Alumno</th>
-                    <th>Correo</th>
-                    <th>Nota</th>
-                    <th>Cambios</th>
-                    <th>Inicio</th>
-                    <th>Fin</th>
-                    <th>Detalle</th>
-                </tr>
-            </thead>
+                <option value="">
+                    Seleccione un examen
+                </option>
 
-            <tbody>
+                <?php while (
+                    $filaExamen = $examenes->fetch_assoc()
+                ): ?>
 
-                <?php while($fila = $resultados->fetch_assoc()): ?>
-
-                <tr>
-
-                    <td>
-                        <?= htmlspecialchars($fila['nombre']) ?>
-                    </td>
-
-                    <td>
-                        <?= htmlspecialchars($fila['correo']) ?>
-                    </td>
-
-                    <td>
-                        <?= $fila['nota'] ?>
-                    </td>
-
-                    <td>
-                        <?= $fila['cambios_pestana'] ?>
-                    </td>
-
-                    <td>
-                        <?= $fila['fecha_inicio'] ?>
-                    </td>
-
-                    <td>
-                        <?= $fila['fecha_fin'] ?>
-                    </td>
-
-                    <td>
-                        <a
-                        href="detalle_resultado.php?id=<?= $fila['id'] ?>"
-                        class="btn-mini"
-                        >
-                            Ver
-                        </a>
-                    </td>
-
-                </tr>
+                    <option
+                        value="<?= (int) $filaExamen['id'] ?>"
+                        <?= $examen_id === (int) $filaExamen['id']
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        <?= htmlspecialchars(
+                            $filaExamen['titulo']
+                        ) ?>
+                    </option>
 
                 <?php endwhile; ?>
 
-            </tbody>
+            </select>
 
-        </table>
+        </form>
 
         <br>
 
-        <a href="dashboard.php" class="btn">
+        <?php if ($examenSeleccionado): ?>
+
+            <h2>
+                <?= htmlspecialchars(
+                    $examenSeleccionado['titulo']
+                ) ?>
+            </h2>
+
+            <?php if (
+                (int) $examenSeleccionado['mostrar_respuestas'] === 1
+            ): ?>
+
+                <a
+                    href="cambiar_mostrar_respuestas.php?examen_id=<?= $examen_id ?>&valor=0"
+                    class="btn btn-salir"
+                >
+                    Ocultar respuestas a alumnos
+                </a>
+
+            <?php else: ?>
+
+                <a
+                    href="cambiar_mostrar_respuestas.php?examen_id=<?= $examen_id ?>&valor=1"
+                    class="btn"
+                >
+                    Mostrar respuestas a alumnos
+                </a>
+
+            <?php endif; ?>
+
+            <br><br>
+
+            <a
+                href="exportar_notas.php?examen_id=<?= $examen_id ?>"
+                class="btn"
+            >
+                Exportar notas CSV
+            </a>
+
+            <br><br>
+
+            <?php if (
+                $resultados &&
+                $resultados->num_rows > 0
+            ): ?>
+
+                <table class="tabla">
+
+                    <thead>
+
+                        <tr>
+                            <th>Alumno</th>
+                            <th>Correo</th>
+                            <th>Nota</th>
+                            <th>Cambios</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>Detalle</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        <?php while (
+                            $fila = $resultados->fetch_assoc()
+                        ): ?>
+
+                            <tr>
+
+                                <td>
+                                    <?= htmlspecialchars(
+                                        $fila['nombre']
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars(
+                                        $fila['correo']
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars(
+                                        $fila['nota']
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= (int) $fila['cambios_pestana'] ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars(
+                                        $fila['fecha_inicio']
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars(
+                                        $fila['fecha_fin']
+                                    ) ?>
+                                </td>
+
+                                <td>
+
+                                    <a
+                                        href="detalle_resultado.php?id=<?= (int) $fila['id'] ?>"
+                                        class="btn-mini"
+                                    >
+                                        Ver
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        <?php endwhile; ?>
+
+                    </tbody>
+
+                </table>
+
+            <?php else: ?>
+
+                <div
+                    style="
+                        padding:12px;
+                        background:#f3f3f3;
+                        border-radius:6px;
+                    "
+                >
+                    Este examen todavía no tiene resultados finalizados.
+                </div>
+
+            <?php endif; ?>
+
+        <?php else: ?>
+
+            <div
+                style="
+                    padding:12px;
+                    background:#f3f3f3;
+                    border-radius:6px;
+                "
+            >
+                Seleccione un examen publicado para consultar sus resultados.
+            </div>
+
+        <?php endif; ?>
+
+        <br>
+
+        <a
+            href="dashboard.php"
+            class="btn"
+        >
             Volver
         </a>
 
