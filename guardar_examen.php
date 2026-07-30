@@ -14,26 +14,31 @@ if ($_SESSION['rol'] != 'docente') {
 $titulo = $_POST['titulo'];
 $descripcion = $_POST['descripcion'];
 $tiempo_minutos = (int)$_POST['tiempo_minutos'];
+$cantidad_preguntas = (int)$_POST['cantidad_preguntas'];
 $estado = $_POST['estado'];
 
 $activo = $estado == 'publicado' ? 1 : 0;
+
+
 
 $stmt = $conn->prepare("
     INSERT INTO examenes(
         titulo,
         descripcion,
         tiempo_minutos,
+        cantidad_preguntas,
         activo,
         estado
     )
-    VALUES (?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?)
 ");
 
 $stmt->bind_param(
-    "ssiis",
+    "ssiiis",
     $titulo,
     $descripcion,
     $tiempo_minutos,
+    $cantidad_preguntas,
     $activo,
     $estado
 );

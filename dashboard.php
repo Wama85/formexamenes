@@ -48,6 +48,7 @@ if (!isset($_SESSION['usuario_id'])) {
                     Administrar Examen
                 </a>
             <?php endif; ?>
+            
 <?php if($_SESSION['rol'] == 'docente'): ?>
 
 <a href="resultados.php" class="btn">
@@ -61,6 +62,11 @@ if (!isset($_SESSION['usuario_id'])) {
         Ver mis respuestas
     </a>
 
+<?php endif; ?>
+<?php if ($_SESSION['rol'] == 'docente'): ?>
+    <a href="asistente_ia.php" class="btn">
+        Asistente IA
+    </a>
 <?php endif; ?>
             <a href="logout.php" class="btn btn-salir">
                 Cerrar Sesión

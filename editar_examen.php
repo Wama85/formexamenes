@@ -52,7 +52,16 @@ if (!$examen) {
             <label>Tiempo en minutos</label>
             <input type="number" name="tiempo_minutos" class="input"
                    value="<?= $examen['tiempo_minutos'] ?>" required>
+<label>Cantidad de preguntas por estudiante</label>
 
+<input
+    type="number"
+    name="cantidad_preguntas"
+    class="input"
+    min="1"
+    value="<?= $examen['cantidad_preguntas'] ?>"
+    required
+>
             <label>Estado</label>
             <select name="estado" class="input">
                 <option value="borrador" <?= $examen['estado']=='borrador' ? 'selected' : '' ?>>Borrador</option>

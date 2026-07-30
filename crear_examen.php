@@ -35,7 +35,16 @@ if ($_SESSION['rol'] != 'docente') {
 
             <label>Tiempo en minutos</label>
             <input type="number" name="tiempo_minutos" class="input" value="90" required>
+<label>Cantidad de preguntas que verá cada estudiante</label>
 
+<input
+    type="number"
+    name="cantidad_preguntas"
+    class="input"
+    value="8"
+    min="1"
+    required
+>
             <label>Estado</label>
             <select name="estado" class="input">
                 <option value="borrador">Borrador</option>
