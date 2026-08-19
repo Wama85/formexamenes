@@ -89,7 +89,7 @@ if ($examen_id > 0) {
         $resultadoExamen->fetch_assoc();
 
     if (!$examenSeleccionado) {
-        die("El examen no existe o ya no está publicado.");
+        die("El Formulario no existe o ya no está publicado.");
     }
 
     /*
@@ -158,7 +158,7 @@ if ($examen_id > 0) {
 
     <div class="card">
 
-        <h1>Resultados del Examen</h1>
+        <h1>Resultados del Formulario</h1>
 
         <form
             method="GET"
@@ -166,7 +166,7 @@ if ($examen_id > 0) {
         >
 
             <label for="examen_id">
-                Seleccione un examen publicado
+                Seleccione un Formulario publicado
             </label>
 
             <select
@@ -177,7 +177,7 @@ if ($examen_id > 0) {
             >
 
                 <option value="">
-                    Seleccione un examen
+                    Seleccione un Formulario
                 </option>
 
                 <?php while (
@@ -335,7 +335,7 @@ if ($examen_id > 0) {
                         border-radius:6px;
                     "
                 >
-                    Este examen todavía no tiene resultados finalizados.
+                    Este Formulario todavía no tiene resultados finalizados.
                 </div>
 
             <?php endif; ?>
@@ -349,7 +349,7 @@ if ($examen_id > 0) {
                     border-radius:6px;
                 "
             >
-                Seleccione un examen publicado para consultar sus resultados.
+                Seleccione un Formulario publicado para consultar sus resultados.
             </div>
 
         <?php endif; ?>

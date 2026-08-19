@@ -23,7 +23,7 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| Validar examen
+| Validar formulario
 |--------------------------------------------------------------------------
 */
 
@@ -32,7 +32,7 @@ $examen_id = isset($_GET['examen_id'])
     : 0;
 
 if ($examen_id <= 0) {
-    die("Examen inválido.");
+    die("Formulario inválido.");
 }
 
 $stmtExamen = $conn->prepare("
@@ -55,7 +55,7 @@ $resultadoExamen = $stmtExamen->get_result();
 $examen = $resultadoExamen->fetch_assoc();
 
 if (!$examen) {
-    die("Examen no encontrado.");
+    die("Formulario no encontrado.");
 }
 
 ?>
@@ -91,7 +91,7 @@ if (!$examen) {
 
         <p class="correo">
 
-            Examen:
+            Formulario:
 
             <strong>
                 <?= htmlspecialchars($examen['titulo']) ?>
@@ -102,6 +102,7 @@ if (!$examen) {
         <form
             action="guardar_pregunta.php"
             method="POST"
+            enctype="multipart/form-data"
             id="formPregunta"
         >
 
@@ -151,6 +152,72 @@ if (!$examen) {
                 rows="5"
                 required
             ></textarea>
+
+            <label for="imagen_tipo">
+                Imagen de la pregunta (opcional)
+            </label>
+
+            <select
+                name="imagen_tipo"
+                id="imagen_tipo"
+                class="input"
+            >
+
+                <option value="">
+                    Sin imagen
+                </option>
+
+                <option value="archivo">
+                    Subir imagen
+                </option>
+
+                <option value="url">
+                    Usar imagen desde Internet
+                </option>
+
+            </select>
+
+            <div
+                id="bloqueImagenArchivo"
+                style="display:none;"
+            >
+
+                <label for="imagen_archivo">
+                    Seleccionar imagen
+                </label>
+
+                <input
+                    type="file"
+                    name="imagen_archivo"
+                    id="imagen_archivo"
+                    class="input"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                >
+
+                <p class="correo">
+                    Formatos permitidos: JPG, PNG y WEBP. Máximo 5 MB.
+                </p>
+
+            </div>
+
+            <div
+                id="bloqueImagenUrl"
+                style="display:none;"
+            >
+
+                <label for="imagen_url">
+                    Enlace de la imagen
+                </label>
+
+                <input
+                    type="url"
+                    name="imagen_url"
+                    id="imagen_url"
+                    class="input"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                >
+
+            </div>
 
             <label for="puntaje">
                 Puntaje
@@ -232,13 +299,13 @@ if (!$examen) {
 
                 <div id="listaOpciones"></div>
 
-<button
-    type="button"
-    class="btn"
-    id="btnAgregarOpcion"
->
-    + Agregar opción
-</button>
+                <button
+                    type="button"
+                    class="btn"
+                    id="btnAgregarOpcion"
+                >
+                    + Agregar opción
+                </button>
 
             </div>
 
@@ -293,6 +360,29 @@ const ayudaPalabras =
 const instruccionOpciones =
     document.getElementById("instruccionOpciones");
 
+const imagenTipo =
+    document.getElementById("imagen_tipo");
+
+const bloqueImagenArchivo =
+    document.getElementById("bloqueImagenArchivo");
+
+const bloqueImagenUrl =
+    document.getElementById("bloqueImagenUrl");
+
+const imagenArchivo =
+    document.getElementById("imagen_archivo");
+
+const imagenUrl =
+    document.getElementById("imagen_url");
+
+let contadorOpciones = 0;
+
+/*
+|--------------------------------------------------------------------------
+| Obtener elementos dinámicos
+|--------------------------------------------------------------------------
+*/
+
 function obtenerTextosOpciones() {
     return document.querySelectorAll(".texto-opcion");
 }
@@ -304,7 +394,42 @@ function obtenerTextosCorrecta() {
 function obtenerSelectoresCorrectos() {
     return document.querySelectorAll(".selector-correcta");
 }
-let contadorOpciones = 0;
+
+/*
+|--------------------------------------------------------------------------
+| Imagen
+|--------------------------------------------------------------------------
+*/
+
+function actualizarTipoImagen() {
+
+    bloqueImagenArchivo.style.display = "none";
+    bloqueImagenUrl.style.display = "none";
+
+    imagenArchivo.required = false;
+    imagenUrl.required = false;
+
+    if (imagenTipo.value === "archivo") {
+
+        bloqueImagenArchivo.style.display = "block";
+        imagenArchivo.required = true;
+        imagenUrl.value = "";
+
+    } else if (imagenTipo.value === "url") {
+
+        bloqueImagenUrl.style.display = "block";
+        imagenUrl.required = true;
+        imagenArchivo.value = "";
+
+    } else {
+
+        imagenArchivo.value = "";
+        imagenUrl.value = "";
+
+    }
+
+}
+
 /*
 |--------------------------------------------------------------------------
 | Limpiar selección de respuestas correctas
@@ -313,7 +438,7 @@ let contadorOpciones = 0;
 
 function limpiarSeleccionCorrecta() {
 
-    document.querySelectorAll(".selector-correcta").forEach(function (selector) {
+    obtenerSelectoresCorrectos().forEach(function (selector) {
 
         selector.checked = false;
 
@@ -332,14 +457,14 @@ function configurarSeleccionUnica() {
     instruccionOpciones.textContent =
         "Escriba las opciones y marque una sola respuesta correcta.";
 
-    document.querySelectorAll(".selector-correcta").forEach(function (selector) {
+    obtenerSelectoresCorrectos().forEach(function (selector) {
 
         selector.type = "radio";
         selector.name = "correcta";
 
     });
 
-    document.querySelectorAll(".texto-correcta").forEach(function (texto) {
+    obtenerTextosCorrecta().forEach(function (texto) {
 
         texto.textContent =
             "Es la respuesta correcta";
@@ -359,14 +484,14 @@ function configurarSeleccionMultiple() {
     instruccionOpciones.textContent =
         "Escriba las opciones y marque todas las respuestas correctas.";
 
-    document.querySelectorAll(".selector-correcta").forEach(function (selector) {
+    obtenerSelectoresCorrectos().forEach(function (selector) {
 
         selector.type = "checkbox";
         selector.name = "correctas[]";
 
     });
 
-    document.querySelectorAll(".texto-correcta").forEach(function (texto) {
+    obtenerTextosCorrecta().forEach(function (texto) {
 
         texto.textContent =
             "Es una respuesta correcta";
@@ -377,7 +502,7 @@ function configurarSeleccionMultiple() {
 
 /*
 |--------------------------------------------------------------------------
-| Actualizar formulario según el tipo de pregunta
+| Actualizar formulario
 |--------------------------------------------------------------------------
 */
 
@@ -399,7 +524,7 @@ function actualizarFormulario() {
         metodoCorreccion.disabled = true;
         respuestaCorrecta.disabled = true;
 
-        document.querySelectorAll(".texto-opcion").forEach(function (input) {
+        obtenerTextosOpciones().forEach(function (input) {
 
             input.required = true;
 
@@ -426,10 +551,9 @@ function actualizarFormulario() {
         metodoCorreccion.disabled = false;
         respuestaCorrecta.disabled = false;
 
-        document.querySelectorAll(".texto-opcion").forEach(function (input) {
+        obtenerTextosOpciones().forEach(function (input) {
 
             input.required = false;
-            input.value = "";
 
         });
 
@@ -451,9 +575,10 @@ function actualizarFormulario() {
     actualizarMetodoCorreccion();
 
 }
+
 /*
 |--------------------------------------------------------------------------
-| Mostrar ayuda según el método de corrección
+| Método de corrección
 |--------------------------------------------------------------------------
 */
 
@@ -466,6 +591,7 @@ function actualizarMetodoCorreccion() {
 
         ayudaPalabras.style.display = "none";
         return;
+
     }
 
     if (metodoCorreccion.value === "manual") {
@@ -475,6 +601,7 @@ function actualizarMetodoCorreccion() {
     } else {
 
         respuestaCorrecta.required = true;
+
     }
 
     if (metodoCorreccion.value === "palabras_clave") {
@@ -484,12 +611,14 @@ function actualizarMetodoCorreccion() {
     } else {
 
         ayudaPalabras.style.display = "none";
+
     }
+
 }
 
 /*
 |--------------------------------------------------------------------------
-| Validar formulario antes de enviarlo
+| Validación
 |--------------------------------------------------------------------------
 */
 
@@ -506,6 +635,12 @@ formPregunta.addEventListener(
             return;
         }
 
+        const textosOpciones =
+            obtenerTextosOpciones();
+
+        const selectoresCorrectos =
+            obtenerSelectoresCorrectos();
+
         let opcionesCompletas = 0;
 
         textosOpciones.forEach(function (input) {
@@ -513,6 +648,7 @@ formPregunta.addEventListener(
             if (input.value.trim() !== "") {
                 opcionesCompletas++;
             }
+
         });
 
         if (opcionesCompletas < 2) {
@@ -524,6 +660,7 @@ formPregunta.addEventListener(
             );
 
             return;
+
         }
 
         const seleccionadas = Array.from(
@@ -531,6 +668,7 @@ formPregunta.addEventListener(
         ).filter(function (selector) {
 
             return selector.checked;
+
         });
 
         if (
@@ -545,6 +683,7 @@ formPregunta.addEventListener(
             );
 
             return;
+
         }
 
         if (
@@ -559,20 +698,20 @@ formPregunta.addEventListener(
             );
 
             return;
-        }
 
-        /*
-        Verificar que las respuestas marcadas como correctas
-        tengan texto.
-        */
+        }
 
         for (const selector of seleccionadas) {
 
-            const indice = parseInt(selector.value);
+            const bloque =
+                selector.closest(".bloque-opcion");
+
+            const textoOpcion =
+                bloque.querySelector(".texto-opcion");
 
             if (
-                !textosOpciones[indice] ||
-                textosOpciones[indice].value.trim() === ""
+                !textoOpcion ||
+                textoOpcion.value.trim() === ""
             ) {
 
                 evento.preventDefault();
@@ -582,40 +721,32 @@ formPregunta.addEventListener(
                 );
 
                 return;
+
             }
+
         }
+
     }
 );
 
-tipo.addEventListener(
-    "change",
-    actualizarFormulario
-);
-
-metodoCorreccion.addEventListener(
-    "change",
-    actualizarMetodoCorreccion
-);
-
-
-
-
-
-
 /*
 |--------------------------------------------------------------------------
-| Agregar nueva opción
-|--------------------------------------------------------------------------*/
+| Agregar opción
+|--------------------------------------------------------------------------
+*/
+
 function agregarOpcion() {
 
     contadorOpciones++;
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
     div.className = "bloque-opcion";
 
     div.innerHTML = `
-        <label>
+
+        <label class="titulo-opcion">
             Opción ${contadorOpciones}
         </label>
 
@@ -629,7 +760,7 @@ function agregarOpcion() {
 
             <input
                 class="selector-correcta"
-                value="${contadorOpciones-1}"
+                value="${contadorOpciones - 1}"
             >
 
             <span class="texto-correcta"></span>
@@ -653,62 +784,168 @@ function agregarOpcion() {
     actualizarTiposCorrecta();
 
 }
-/*|--------------------------------------------------------------------------
-| Actualizar tipos de selección correcta
-|--------------------------------------------------------------------------*/
-function actualizarTiposCorrecta(){
+
+/*
+|--------------------------------------------------------------------------
+| Configurar radio o checkbox
+|--------------------------------------------------------------------------
+*/
+
+function actualizarTiposCorrecta() {
 
     const selectores =
-        document.querySelectorAll(".selector-correcta");
+        obtenerSelectoresCorrectos();
 
     const textos =
-        document.querySelectorAll(".texto-correcta");
+        obtenerTextosCorrecta();
 
-    if(tipo.value=="seleccion_multiple"){
+    if (tipo.value === "seleccion_multiple") {
 
-        selectores.forEach(s=>{
+        selectores.forEach(function (selector) {
 
-            s.type="checkbox";
-            s.name="correctas[]";
-
-        });
-
-        textos.forEach(t=>{
-
-            t.textContent="Es una respuesta correcta";
+            selector.type = "checkbox";
+            selector.name = "correctas[]";
 
         });
 
-    }else{
+        textos.forEach(function (texto) {
 
-        selectores.forEach(s=>{
-
-            s.type="radio";
-            s.name="correcta";
+            texto.textContent =
+                "Es una respuesta correcta";
 
         });
 
-        textos.forEach(t=>{
+    } else {
 
-            t.textContent="Es la respuesta correcta";
+        selectores.forEach(function (selector) {
+
+            selector.type = "radio";
+            selector.name = "correcta";
+
+        });
+
+        textos.forEach(function (texto) {
+
+            texto.textContent =
+                "Es la respuesta correcta";
 
         });
 
     }
 
 }
+
+/*
+|--------------------------------------------------------------------------
+| Renumerar opciones
+|--------------------------------------------------------------------------
+*/
+
+function renumerarOpciones() {
+
+    contadorOpciones = 0;
+
+    document
+        .querySelectorAll(".bloque-opcion")
+        .forEach(function (bloque) {
+
+            contadorOpciones++;
+
+            const titulo =
+                bloque.querySelector(".titulo-opcion");
+
+            const selector =
+                bloque.querySelector(".selector-correcta");
+
+            titulo.textContent =
+                "Opción " + contadorOpciones;
+
+            selector.value =
+                contadorOpciones - 1;
+
+        });
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Eventos
+|--------------------------------------------------------------------------
+*/
+
 document
-.getElementById("btnAgregarOpcion")
-.addEventListener(
+    .getElementById("btnAgregarOpcion")
+    .addEventListener(
+        "click",
+        agregarOpcion
+    );
+
+document.addEventListener(
     "click",
-    agregarOpcion
+    function (e) {
+
+        if (
+            !e.target.classList.contains(
+                "btnEliminar"
+            )
+        ) {
+            return;
+        }
+
+        const bloques =
+            document.querySelectorAll(
+                ".bloque-opcion"
+            );
+
+        if (bloques.length <= 2) {
+
+            alert(
+                "Debe existir al menos dos opciones."
+            );
+
+            return;
+
+        }
+
+        e.target
+            .closest(".bloque-opcion")
+            .remove();
+
+        renumerarOpciones();
+        actualizarTiposCorrecta();
+
+    }
 );
+
+tipo.addEventListener(
+    "change",
+    actualizarFormulario
+);
+
+metodoCorreccion.addEventListener(
+    "change",
+    actualizarMetodoCorreccion
+);
+
+imagenTipo.addEventListener(
+    "change",
+    actualizarTipoImagen
+);
+
+/*
+|--------------------------------------------------------------------------
+| Inicializar
+|--------------------------------------------------------------------------
+*/
 
 agregarOpcion();
 agregarOpcion();
 agregarOpcion();
 agregarOpcion();
+
 actualizarFormulario();
+actualizarTipoImagen();
+
 </script>
 
 </body>

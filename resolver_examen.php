@@ -18,17 +18,30 @@ $usuario_id = (int) $_SESSION['usuario_id'];
 
 /*
 |--------------------------------------------------------------------------
-| Buscar examen publicado
+| Obtener formulario seleccionado
 |--------------------------------------------------------------------------
 */
+
+$examen_id = isset($_GET['examen_id'])
+    ? (int) $_GET['examen_id']
+    : 0;
+
+if ($examen_id <= 0) {
+    die("Formulario inválido.");
+}
 
 $stmtExamen = $conn->prepare("
     SELECT *
     FROM examenes
-    WHERE estado = 'publicado'
-    ORDER BY id DESC
+    WHERE id = ?
+      AND estado = 'publicado'
     LIMIT 1
 ");
+
+$stmtExamen->bind_param(
+    "i",
+    $examen_id
+);
 
 $stmtExamen->execute();
 
@@ -36,10 +49,14 @@ $resultadoExamen = $stmtExamen->get_result();
 $examen = $resultadoExamen->fetch_assoc();
 
 if (!$examen) {
-    die("No existe un examen publicado.");
+    die("El formulario no existe o ya no está disponible.");
 }
 
-$examen_id = (int) $examen['id'];
+$cantidad_intentos = (int)$examen['cantidad_intentos'];
+
+if ($cantidad_intentos < 1) {
+    $cantidad_intentos = 1;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -55,7 +72,8 @@ $stmtIntentoAbierto = $conn->prepare("
     SELECT
         id,
         fecha_inicio,
-        cambios_pestana
+        cambios_pestana,
+        numero_intento
     FROM intentos
     WHERE usuario_id = ?
       AND examen_id = ?
@@ -94,44 +112,45 @@ if ($intentoAbierto) {
     $cambios_guardados = isset($intentoAbierto['cambios_pestana'])
         ? (int) $intentoAbierto['cambios_pestana']
         : 0;
-
+    $numero_intento = (int) $intentoAbierto['numero_intento'];
 } else {
 
     /*
-    Contar todos los intentos utilizados.
-    */
+Buscar el número de intento más alto utilizado.
+*/
 
-    $stmtCantidadIntentos = $conn->prepare("
-        SELECT COUNT(*) AS total
-        FROM intentos
-        WHERE usuario_id = ?
-          AND examen_id = ?
-          AND finalizado IN (0, 1)
+$stmtCantidadIntentos = $conn->prepare("
+    SELECT COALESCE(MAX(numero_intento), 0) AS ultimo_intento
+    FROM intentos
+    WHERE usuario_id = ?
+      AND examen_id = ?
+");
+
+$stmtCantidadIntentos->bind_param(
+    "ii",
+    $usuario_id,
+    $examen_id
+);
+
+$stmtCantidadIntentos->execute();
+
+$resultadoCantidadIntentos =
+    $stmtCantidadIntentos->get_result();
+
+$datosIntentos =
+    $resultadoCantidadIntentos->fetch_assoc();
+
+$ultimoIntento =
+    (int) $datosIntentos['ultimo_intento'];
+
+if ($ultimoIntento >= $cantidad_intentos) {
+    die("
+        Ya utilizó los {$cantidad_intentos} intentos permitidos para este Formulario.
+        Ahora solo puede consultar su nota.
     ");
+}
 
-    $stmtCantidadIntentos->bind_param(
-        "ii",
-        $usuario_id,
-        $examen_id
-    );
-
-    $stmtCantidadIntentos->execute();
-
-    $resultadoCantidadIntentos = $stmtCantidadIntentos->get_result();
-    $datosIntentos = $resultadoCantidadIntentos->fetch_assoc();
-
-    $totalIntentos = (int) $datosIntentos['total'];
-
-    /*
-    Después de dos intentos, ya no puede resolver nuevamente.
-    */
-
-    if ($totalIntentos >= 2) {
-        die("
-            Ya utilizó los 2 intentos permitidos para este examen.
-            Ahora solo puede consultar su nota.
-        ");
-    }
+$numero_intento = $ultimoIntento + 1;
 
     /*
     Crear un nuevo intento.
@@ -147,17 +166,19 @@ if ($intentoAbierto) {
             fecha_inicio,
             ip_publica,
             navegador,
-            finalizado
+            finalizado,
+            numero_intento
         )
-        VALUES (?, ?, NOW(), ?, ?, 0)
+        VALUES (?, ?, NOW(), ?, ?, 0,?)
     ");
 
     $stmtCrearIntento->bind_param(
-        "iiss",
+        "iissi",
         $usuario_id,
         $examen_id,
         $ip,
-        $navegador
+        $navegador,
+        $numero_intento
     );
 
     if (!$stmtCrearIntento->execute()) {
@@ -256,7 +277,7 @@ if ($totalAsignadas === 0) {
 
         $stmtEliminarIntento->execute();
 
-        die("Este examen todavía no tiene preguntas.");
+        die("Este Formulario todavía no tiene preguntas.");
     }
 
     /*
@@ -403,7 +424,7 @@ if ($tiempo_restante < 0) {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Resolver Examen</title>
+    <title>Resolver Formulario</title>
 
     <link
         rel="stylesheet"
@@ -423,43 +444,10 @@ if ($tiempo_restante < 0) {
         </h1>
 
         <p class="correo">
-            Tiempo:
-            <?= $tiempo_minutos ?>
-            minutos
-        </p>
-
-        <p class="correo">
-            Intento:
-            <?php
-
-            $stmtNumeroIntento = $conn->prepare("
-                SELECT COUNT(*) AS numero
-                FROM intentos
-                WHERE usuario_id = ?
-                  AND examen_id = ?
-                  AND id <= ?
-            ");
-
-            $stmtNumeroIntento->bind_param(
-                "iii",
-                $usuario_id,
-                $examen_id,
-                $intento_id
-            );
-
-            $stmtNumeroIntento->execute();
-
-            $resultadoNumeroIntento =
-                $stmtNumeroIntento->get_result();
-
-            $datosNumeroIntento =
-                $resultadoNumeroIntento->fetch_assoc();
-
-            echo (int) $datosNumeroIntento['numero'];
-
-            ?>
-            de 2
-        </p>
+    Intento:
+    <?= $numero_intento ?>
+    de <?= $cantidad_intentos ?>
+</p>
 
         <div
             id="temporizador"
@@ -510,7 +498,34 @@ if ($tiempo_restante < 0) {
                             htmlspecialchars($pregunta['pregunta'])
                         ) ?>
 
-                    </h3>
+                                        </h3>
+
+                    <?php if (!empty($pregunta['imagen'])): ?>
+
+                        <div
+                            class="imagen-pregunta"
+                            style="
+                                margin: 15px 0 20px 0;
+                                text-align: center;
+                            "
+                        >
+
+                            <img
+                                src="<?= htmlspecialchars($pregunta['imagen']) ?>"
+                                alt="Imagen de la pregunta"
+                                style="
+                                    max-width: 100%;
+                                    max-height: 450px;
+                                    width: auto;
+                                    height: auto;
+                                    object-fit: contain;
+                                    border-radius: 6px;
+                                "
+                            >
+
+                        </div>
+
+                    <?php endif; ?>
 
                     <?php if ($pregunta['tipo'] === 'codigo'): ?>
 
@@ -702,14 +717,14 @@ function registrarCambioPantalla() {
 
         alert(
             "Advertencia: no debe cambiar de pantalla. " +
-            "Si vuelve a hacerlo, el examen finalizará."
+            "Si vuelve a hacerlo, el Formulario finalizará."
         );
     }
 
     if (cambios >= 2) {
 
         enviarExamen(
-            "Examen finalizado automáticamente " +
+            "Formulario finalizado automáticamente " +
             "por cambiar de pantalla."
         );
     }
@@ -753,7 +768,7 @@ window.addEventListener(
         );
 
         alert(
-            "No puede volver atrás durante el examen."
+            "No puede volver atrás durante el Formulario."
         );
     }
 );

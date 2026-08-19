@@ -24,7 +24,7 @@ $valor = isset($_GET['valor'])
     : -1;
 
 if ($examen_id <= 0) {
-    die("Examen inválido.");
+    die("formulario inválido.");
 }
 
 if ($valor !== 0 && $valor !== 1) {
@@ -50,7 +50,7 @@ $resultadoExamen =
     $stmtExamen->get_result();
 
 if (!$resultadoExamen->fetch_assoc()) {
-    die("El examen no existe o ya no está publicado.");
+    die("El formulario no existe o ya no está publicado.");
 }
 
 $stmt = $conn->prepare("

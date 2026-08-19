@@ -1041,8 +1041,111 @@ $stmtGuardarRespuesta->execute();
     }
 
     /*
-    Guardar todos los cambios.
+|--------------------------------------------------------------------------
+| Eliminar intentos anteriores del mismo alumno y formulario
+|--------------------------------------------------------------------------
+*/
+
+$stmtIntentosAnteriores = $conn->prepare("
+    SELECT id
+FROM intentos
+WHERE usuario_id = ?
+  AND examen_id = ?
+  AND numero_intento < (
+        SELECT numero_intento
+        FROM intentos
+        WHERE id = ?
+    )
+");
+
+$stmtIntentosAnteriores->bind_param(
+    "iii",
+    $usuario_id,
+    $examen_id,
+    $intento_id
+);
+
+$stmtIntentosAnteriores->execute();
+
+$resultadoIntentosAnteriores =
+    $stmtIntentosAnteriores->get_result();
+
+while (
+    $intentoAnterior =
+    $resultadoIntentosAnteriores->fetch_assoc()
+) {
+
+    $intentoAnteriorId =
+        (int) $intentoAnterior['id'];
+
+    /*
+    Eliminar eventos de seguridad.
     */
+
+    $stmtEliminarEventos = $conn->prepare("
+        DELETE FROM eventos_seguridad
+        WHERE intento_id = ?
+    ");
+
+    $stmtEliminarEventos->bind_param(
+        "i",
+        $intentoAnteriorId
+    );
+
+    $stmtEliminarEventos->execute();
+
+    /*
+    Eliminar respuestas.
+    */
+
+    $stmtEliminarRespuestasAnteriores = $conn->prepare("
+        DELETE FROM respuestas
+        WHERE intento_id = ?
+    ");
+
+    $stmtEliminarRespuestasAnteriores->bind_param(
+        "i",
+        $intentoAnteriorId
+    );
+
+    $stmtEliminarRespuestasAnteriores->execute();
+
+    /*
+    Eliminar preguntas asignadas.
+    */
+
+    $stmtEliminarPreguntasAnteriores = $conn->prepare("
+        DELETE FROM intento_preguntas
+        WHERE intento_id = ?
+    ");
+
+    $stmtEliminarPreguntasAnteriores->bind_param(
+        "i",
+        $intentoAnteriorId
+    );
+
+    $stmtEliminarPreguntasAnteriores->execute();
+
+    /*
+    Eliminar el intento anterior.
+    */
+
+    $stmtEliminarIntentoAnterior = $conn->prepare("
+        DELETE FROM intentos
+        WHERE id = ?
+          AND usuario_id = ?
+          AND examen_id = ?
+    ");
+
+    $stmtEliminarIntentoAnterior->bind_param(
+        "iii",
+        $intentoAnteriorId,
+        $usuario_id,
+        $examen_id
+    );
+
+    $stmtEliminarIntentoAnterior->execute();
+}
 
     $conn->commit();
 
@@ -1051,7 +1154,7 @@ $stmtGuardarRespuesta->execute();
     $conn->rollback();
 
     die(
-        "Ocurrió un error al finalizar el examen: " .
+        "Ocurrió un error al finalizar el Formulario: " .
         htmlspecialchars($error->getMessage())
     );
 }
@@ -1096,7 +1199,7 @@ $estado =
 
     <div class="card">
 
-        <h1>Examen Finalizado</h1>
+        <h1>Formulario Finalizado</h1>
 
         <?php if ($cambios_pestana >= 2): ?>
 
@@ -1104,7 +1207,7 @@ $estado =
                 class="bienvenida"
                 style="text-align:center;"
             >
-                El examen fue enviado automáticamente por cambiar
+                El Formulario fue enviado automáticamente por cambiar
                 de pantalla dos veces.
             </p>
 

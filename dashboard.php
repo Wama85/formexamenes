@@ -12,7 +12,7 @@ if (!isset($_SESSION['usuario_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - FormExamenes</title>
+    <title>Dashboard - Formularios</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -22,7 +22,7 @@ if (!isset($_SESSION['usuario_id'])) {
 
     <div class="card">
 
-        <h1>FormExamenes</h1>
+        <h1>Formularios</h1>
 
         <p class="bienvenida">
             Bienvenido,
@@ -35,17 +35,24 @@ if (!isset($_SESSION['usuario_id'])) {
 
         <div class="acciones">
 
-            <a href="ver_examen.php" class="btn">
-                Ver Examen
-            </a>
+       <?php if ($_SESSION['rol'] == 'docente'): ?>
 
-            <a href="resolver_examen.php" class="btn">
-                Resolver Examen
+    <a
+        href="seleccionar_formulario_preguntas.php"
+        class="btn"
+    >
+        Preguntas
+    </a>
+
+<?php endif; ?>
+
+            <a href="seleccionar_formulario.php" class="btn">
+                Resolver
             </a>
 
             <?php if ($_SESSION['rol'] == 'docente'): ?>
                 <a href="admin_examen.php" class="btn">
-                    Administrar Examen
+                    Administrar
                 </a>
             <?php endif; ?>
             

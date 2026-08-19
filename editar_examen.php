@@ -28,7 +28,7 @@ if (!$examen) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Editar Examen</title>
+    <title>Editar Formulario</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -36,7 +36,7 @@ if (!$examen) {
 <div class="container">
     <div class="card">
 
-        <h1>Editar Examen</h1>
+        <h1>Editar Formulario</h1>
 
         <form action="actualizar_examen.php" method="POST">
 
@@ -62,13 +62,35 @@ if (!$examen) {
     value="<?= $examen['cantidad_preguntas'] ?>"
     required
 >
+<label>Cantidad de intentos permitidos</label>
+
+<input
+    type="number"
+    name="cantidad_intentos"
+    class="input"
+    min="1"
+    value="<?= (int) $examen['cantidad_intentos'] ?>"
+    required
+>
             <label>Estado</label>
             <select name="estado" class="input">
                 <option value="borrador" <?= $examen['estado']=='borrador' ? 'selected' : '' ?>>Borrador</option>
                 <option value="publicado" <?= $examen['estado']=='publicado' ? 'selected' : '' ?>>Publicado</option>
                 <option value="cerrado" <?= $examen['estado']=='cerrado' ? 'selected' : '' ?>>Cerrado</option>
             </select>
+<label>
+   <label>
+    <input
+        type="checkbox"
+        name="mostrar_preguntas_antes"
+        value="1"
+        <?= !empty($examen['mostrar_preguntas_antes'])
+            ? 'checked'
+            : '' ?>
+    >
 
+    Permitir que los alumnos vean las preguntas antes de iniciar
+</label> <br><br>
             <label>
                 <input type="checkbox" name="mostrar_respuestas" value="1"
                     <?= $examen['mostrar_respuestas'] ? 'checked' : '' ?>>
@@ -78,7 +100,7 @@ if (!$examen) {
             <br><br>
 
             <button type="submit" class="btn">
-                Actualizar examen
+                Actualizar Formulario
             </button>
 
         </form>

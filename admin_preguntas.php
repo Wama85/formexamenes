@@ -46,7 +46,7 @@ $preguntas = $conn->query("
         <h1>Preguntas</h1>
 
         <p class="correo">
-            Examen: <?= htmlspecialchars($examen['titulo']) ?>
+            Formulario: <?= htmlspecialchars($examen['titulo']) ?>
         </p>
 <?php if (isset($_GET['reiniciado'])): ?>
 
@@ -209,10 +209,12 @@ $preguntas = $conn->query("
         <br><br>
 
         <a
-        href="#"
-        class="btn-mini">
-             Eliminar
-        </a>
+    href="eliminar_pregunta.php?id=<?= $p['id'] ?>&examen_id=<?= $examen_id ?>"
+    class="btn-mini"
+    onclick="return confirm('¿Está seguro de eliminar esta pregunta?');"
+>
+    Eliminar
+</a>
 
     </td>
 

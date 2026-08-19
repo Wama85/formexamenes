@@ -27,20 +27,20 @@ if ($_SESSION['rol'] != 'docente') {
 
         <form action="generar_examen_ia.php" method="POST">
 
-            <label>Describe el examen que quieres crear</label>
+            <label>Describe el formulario que quieres crear</label>
 
             <textarea
                 name="instruccion"
                 class="textarea-codigo"
                 rows="10"
                 required
-                placeholder="Ejemplo: Crea un examen de Excel básico para primero de secundaria, con 10 preguntas de opción múltiple, 5 preguntas abiertas, duración 60 minutos, nivel fácil."
+                placeholder="Ejemplo: Crea un formulario de Excel básico para primero de secundaria, con 10 preguntas de opción múltiple, 5 preguntas abiertas, duración 60 minutos, nivel fácil."
             ></textarea>
 
             <br><br>
 
             <button type="submit" class="btn">
-                Generar examen con IA
+                Generar formulario de preguntas con IA
             </button>
 
         </form>

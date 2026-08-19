@@ -27,7 +27,7 @@ $result = $conn->query($sql);
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Vista Previa Examen</title>
+    <title>Vista Previa</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -36,7 +36,7 @@ $result = $conn->query($sql);
 
     <div class="card">
 
-        <h1>Vista Previa del Examen</h1>
+        <h1>Vista Previa</h1>
 
         <?php if($result->num_rows > 0): ?>
 
@@ -97,7 +97,7 @@ $result = $conn->query($sql);
 
         <?php else: ?>
 
-            <p>No existe un examen publicado.</p>
+            <p>No existe un Formulario publicado.</p>
 
         <?php endif; ?>
 

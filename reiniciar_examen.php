@@ -32,7 +32,7 @@ $examen_id = isset($_POST['examen_id'])
     : 0;
 
 if ($examen_id <= 0) {
-    die("Examen inválido.");
+    die("Formulario inválido.");
 }
 
 /*
@@ -126,7 +126,7 @@ try {
     $conn->rollback();
 
     die(
-        "No se pudo reiniciar el examen: " .
+        "No se pudo reiniciar el Formulario: " .
         htmlspecialchars($error->getMessage())
     );
 }

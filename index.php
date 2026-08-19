@@ -10,11 +10,11 @@ if(isset($_SESSION['usuario_id'])){
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sistema de Exámenes</title>
+    <title>Sistema de Formulario</title>
 </head>
 <body style="text-align:center; font-family:Arial">
 
-    <h1>Plataforma de Exámenes</h1>
+    <h1>Plataforma de Formulario</h1>
 
     <p>Acceso exclusivo para estudiantes @cesanrafael.org</p>
 

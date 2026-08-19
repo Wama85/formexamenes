@@ -41,7 +41,7 @@ if ($id <= 0 || $examen_id <= 0) {
 
 /*
 |--------------------------------------------------------------------------
-| Obtener la pregunta
+| Obtener pregunta
 |--------------------------------------------------------------------------
 */
 
@@ -61,8 +61,11 @@ $stmtPregunta->bind_param(
 
 $stmtPregunta->execute();
 
-$resultadoPregunta = $stmtPregunta->get_result();
-$pregunta = $resultadoPregunta->fetch_assoc();
+$resultadoPregunta =
+    $stmtPregunta->get_result();
+
+$pregunta =
+    $resultadoPregunta->fetch_assoc();
 
 if (!$pregunta) {
     die("Pregunta no encontrada.");
@@ -70,7 +73,7 @@ if (!$pregunta) {
 
 /*
 |--------------------------------------------------------------------------
-| Obtener las opciones existentes
+| Obtener opciones
 |--------------------------------------------------------------------------
 */
 
@@ -91,20 +94,45 @@ $stmtOpciones->bind_param(
 
 $stmtOpciones->execute();
 
-$resultadoOpciones = $stmtOpciones->get_result();
+$resultadoOpciones =
+    $stmtOpciones->get_result();
 
 $listaOpciones = [];
 
-while ($opcion = $resultadoOpciones->fetch_assoc()) {
+while (
+    $opcion = $resultadoOpciones->fetch_assoc()
+) {
     $listaOpciones[] = $opcion;
 }
 
 /*
-Siempre mostramos por lo menos cuatro espacios.
-Si existieran más de cuatro opciones, también se mostrarán.
+Si la pregunta de selección todavía no tiene opciones,
+mostrar cuatro inicialmente.
 */
 
-$cantidadCampos = max(4, count($listaOpciones));
+if (
+    (
+        $pregunta['tipo'] === 'opcion_multiple' ||
+        $pregunta['tipo'] === 'seleccion_multiple'
+    ) &&
+    count($listaOpciones) === 0
+) {
+
+    for ($i = 0; $i < 4; $i++) {
+
+        $listaOpciones[] = [
+            'id' => 0,
+            'opcion_texto' => '',
+            'es_correcta' => 0
+        ];
+    }
+}
+
+$imagen_tipo_actual =
+    $pregunta['imagen_tipo'] ?? '';
+
+$imagen_actual =
+    $pregunta['imagen'] ?? '';
 
 ?>
 
@@ -140,19 +168,32 @@ $cantidadCampos = max(4, count($listaOpciones));
         <form
             action="actualizar_pregunta.php"
             method="POST"
+            enctype="multipart/form-data"
             id="formPregunta"
         >
 
             <input
                 type="hidden"
                 name="id"
-                value="<?= (int) $pregunta['id'] ?>"
+                value="<?= (int)$pregunta['id'] ?>"
             >
 
             <input
                 type="hidden"
                 name="examen_id"
                 value="<?= $examen_id ?>"
+            >
+
+            <input
+                type="hidden"
+                name="imagen_actual"
+                value="<?= htmlspecialchars($imagen_actual) ?>"
+            >
+
+            <input
+                type="hidden"
+                name="imagen_tipo_actual"
+                value="<?= htmlspecialchars($imagen_tipo_actual) ?>"
             >
 
             <label for="tipo">
@@ -215,6 +256,118 @@ $cantidadCampos = max(4, count($listaOpciones));
                 rows="5"
                 required
             ><?= htmlspecialchars($pregunta['pregunta']) ?></textarea>
+
+            <!-- IMAGEN ACTUAL -->
+
+            <?php if ($imagen_actual !== ''): ?>
+
+                <label>
+                    Imagen actual
+                </label>
+
+                <div
+                    style="
+                        margin-bottom:15px;
+                        text-align:center;
+                    "
+                >
+
+                    <img
+                        src="<?= htmlspecialchars($imagen_actual) ?>"
+                        alt="Imagen de la pregunta"
+                        style="
+                            max-width:100%;
+                            max-height:350px;
+                            border-radius:6px;
+                        "
+                    >
+
+                </div>
+
+            <?php endif; ?>
+
+            <label for="accion_imagen">
+                Imagen de la pregunta
+            </label>
+
+            <select
+                name="accion_imagen"
+                id="accion_imagen"
+                class="input"
+            >
+
+                <?php if ($imagen_actual !== ''): ?>
+
+                    <option value="mantener">
+                        Mantener imagen actual
+                    </option>
+
+                    <option value="eliminar">
+                        Eliminar imagen
+                    </option>
+
+                <?php else: ?>
+
+                    <option value="sin_imagen">
+                        Sin imagen
+                    </option>
+
+                <?php endif; ?>
+
+                <option value="archivo">
+                    Subir nueva imagen
+                </option>
+
+                <option value="url">
+                    Usar imagen desde Internet
+                </option>
+
+            </select>
+
+            <div
+                id="bloqueImagenArchivo"
+                style="display:none;"
+            >
+
+                <label for="imagen_archivo">
+                    Seleccionar imagen
+                </label>
+
+                <input
+                    type="file"
+                    name="imagen_archivo"
+                    id="imagen_archivo"
+                    class="input"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                >
+
+                <p class="correo">
+                    Formatos permitidos: JPG, PNG y WEBP. Máximo 5 MB.
+                </p>
+
+            </div>
+
+            <div
+                id="bloqueImagenUrl"
+                style="display:none;"
+            >
+
+                <label for="imagen_url">
+                    Enlace de la imagen
+                </label>
+
+                <input
+                    type="url"
+                    name="imagen_url"
+                    id="imagen_url"
+                    class="input"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    value="<?= $imagen_tipo_actual === 'url'
+                        ? htmlspecialchars($imagen_actual)
+                        : '' ?>"
+                >
+
+            </div>
 
             <label for="puntaje">
                 Puntaje
@@ -311,76 +464,76 @@ $cantidadCampos = max(4, count($listaOpciones));
 
                 <div id="listaOpciones">
 
-    <?php foreach ($listaOpciones as $i => $opcion): ?>
+                    <?php foreach ($listaOpciones as $i => $opcion): ?>
 
-        <div class="bloque-opcion">
+                        <div class="bloque-opcion">
 
-            <input
-                type="hidden"
-                name="opcion_id[]"
-                value="<?= (int) $opcion['id'] ?>"
-            >
+                            <input
+                                type="hidden"
+                                name="opcion_id[]"
+                                value="<?= (int)$opcion['id'] ?>"
+                            >
 
-            <label class="titulo-opcion">
-                Opción <?= $i + 1 ?>
-            </label>
+                            <label class="titulo-opcion">
+                                Opción <?= $i + 1 ?>
+                            </label>
 
-            <input
-                type="text"
-                name="opcion[]"
-                class="input texto-opcion"
-                value="<?= htmlspecialchars($opcion['opcion_texto']) ?>"
-                autocomplete="off"
-            >
+                            <input
+                                type="text"
+                                name="opcion[]"
+                                class="input texto-opcion"
+                                value="<?= htmlspecialchars($opcion['opcion_texto']) ?>"
+                                autocomplete="off"
+                            >
 
-            <label class="opcion">
+                            <label class="opcion">
 
-                <input
-                    type="<?= $pregunta['tipo'] === 'seleccion_multiple'
-                        ? 'checkbox'
-                        : 'radio' ?>"
-                    class="selector-correcta"
-                    name="<?= $pregunta['tipo'] === 'seleccion_multiple'
-                        ? 'correctas[]'
-                        : 'correcta' ?>"
-                    value="<?= $i ?>"
-                    <?= (int) $opcion['es_correcta'] === 1
-                        ? 'checked'
-                        : '' ?>
+                                <input
+                                    type="<?= $pregunta['tipo'] === 'seleccion_multiple'
+                                        ? 'checkbox'
+                                        : 'radio' ?>"
+                                    class="selector-correcta"
+                                    name="<?= $pregunta['tipo'] === 'seleccion_multiple'
+                                        ? 'correctas[]'
+                                        : 'correcta' ?>"
+                                    value="<?= $i ?>"
+                                    <?= (int)$opcion['es_correcta'] === 1
+                                        ? 'checked'
+                                        : '' ?>
+                                >
+
+                                <span class="texto-correcta">
+
+                                    <?= $pregunta['tipo'] === 'seleccion_multiple'
+                                        ? 'Es una respuesta correcta'
+                                        : 'Es la respuesta correcta' ?>
+
+                                </span>
+
+                            </label>
+
+                            <button
+                                type="button"
+                                class="btnEliminar"
+                            >
+                                Eliminar
+                            </button>
+
+                            <hr>
+
+                        </div>
+
+                    <?php endforeach; ?>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn"
+                    id="btnAgregarOpcion"
                 >
-
-                <span class="texto-correcta">
-
-                    <?= $pregunta['tipo'] === 'seleccion_multiple'
-                        ? 'Es una respuesta correcta'
-                        : 'Es la respuesta correcta' ?>
-
-                </span>
-
-            </label>
-
-            <button
-                type="button"
-                class="btnEliminar"
-            >
-                Eliminar
-            </button>
-
-            <hr>
-
-        </div>
-
-    <?php endforeach; ?>
-
-</div>
-
-<button
-    type="button"
-    class="btn"
-    id="btnAgregarOpcion"
->
-    + Agregar opción
-</button>
+                    + Agregar opción
+                </button>
 
             </div>
 
@@ -435,6 +588,21 @@ const ayudaPalabras =
 const instruccionOpciones =
     document.getElementById("instruccionOpciones");
 
+const accionImagen =
+    document.getElementById("accion_imagen");
+
+const bloqueImagenArchivo =
+    document.getElementById("bloqueImagenArchivo");
+
+const bloqueImagenUrl =
+    document.getElementById("bloqueImagenUrl");
+
+const imagenArchivo =
+    document.getElementById("imagen_archivo");
+
+const imagenUrl =
+    document.getElementById("imagen_url");
+
 function obtenerTextosOpciones() {
     return document.querySelectorAll(".texto-opcion");
 }
@@ -449,7 +617,42 @@ function obtenerTextosCorrecta() {
 
 /*
 |--------------------------------------------------------------------------
-| Configurar selección única
+| Imagen
+|--------------------------------------------------------------------------
+*/
+
+function actualizarImagen() {
+
+    bloqueImagenArchivo.style.display =
+        "none";
+
+    bloqueImagenUrl.style.display =
+        "none";
+
+    imagenArchivo.required = false;
+    imagenUrl.required = false;
+
+    if (accionImagen.value === "archivo") {
+
+        bloqueImagenArchivo.style.display =
+            "block";
+
+        imagenArchivo.required = true;
+
+    } else if (accionImagen.value === "url") {
+
+        bloqueImagenUrl.style.display =
+            "block";
+
+        imagenUrl.required = true;
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Selección única
 |--------------------------------------------------------------------------
 */
 
@@ -458,8 +661,11 @@ function configurarSeleccionUnica() {
     instruccionOpciones.textContent =
         "Escriba las opciones y marque una sola respuesta correcta.";
 
-    const selectores = obtenerSelectoresCorrectos();
-    const textos = obtenerTextosCorrecta();
+    const selectores =
+        obtenerSelectoresCorrectos();
+
+    const textos =
+        obtenerTextosCorrecta();
 
     selectores.forEach(function (selector) {
 
@@ -475,21 +681,25 @@ function configurarSeleccionUnica() {
 
     });
 
-    const marcadas = Array.from(selectores).filter(function (selector) {
+    const marcadas =
+        Array.from(selectores)
+            .filter(function (selector) {
 
-        return selector.checked;
+                return selector.checked;
 
-    });
+            });
 
     if (marcadas.length > 1) {
 
-        marcadas.forEach(function (selector, indice) {
+        marcadas.forEach(
+            function (selector, indice) {
 
-            if (indice > 0) {
-                selector.checked = false;
+                if (indice > 0) {
+                    selector.checked = false;
+                }
+
             }
-
-        });
+        );
 
     }
 
@@ -497,7 +707,7 @@ function configurarSeleccionUnica() {
 
 /*
 |--------------------------------------------------------------------------
-| Configurar selección múltiple
+| Selección múltiple
 |--------------------------------------------------------------------------
 */
 
@@ -506,8 +716,11 @@ function configurarSeleccionMultiple() {
     instruccionOpciones.textContent =
         "Escriba las opciones y marque todas las respuestas correctas.";
 
-    const selectores = obtenerSelectoresCorrectos();
-    const textos = obtenerTextosCorrecta();
+    const selectores =
+        obtenerSelectoresCorrectos();
+
+    const textos =
+        obtenerTextosCorrecta();
 
     selectores.forEach(function (selector) {
 
@@ -527,7 +740,7 @@ function configurarSeleccionMultiple() {
 
 /*
 |--------------------------------------------------------------------------
-| Actualizar método de corrección
+| Método de corrección
 |--------------------------------------------------------------------------
 */
 
@@ -538,59 +751,68 @@ function actualizarMetodoCorreccion() {
         tipo.value === "seleccion_multiple"
     ) {
 
-        ayudaPalabras.style.display = "none";
-        respuestaCorrecta.required = false;
+        ayudaPalabras.style.display =
+            "none";
+
+        respuestaCorrecta.required =
+            false;
 
         return;
+
     }
 
-    if (metodoCorreccion.value === "manual") {
+    respuestaCorrecta.required =
+        metodoCorreccion.value !== "manual";
 
-        respuestaCorrecta.required = false;
+    ayudaPalabras.style.display =
+        metodoCorreccion.value === "palabras_clave"
+            ? "block"
+            : "none";
 
-    } else {
-
-        respuestaCorrecta.required = true;
-    }
-
-    if (metodoCorreccion.value === "palabras_clave") {
-
-        ayudaPalabras.style.display = "block";
-
-    } else {
-
-        ayudaPalabras.style.display = "none";
-    }
 }
 
 /*
 |--------------------------------------------------------------------------
-| Actualizar formulario
+| Formulario según tipo
 |--------------------------------------------------------------------------
 */
+
 function actualizarFormulario() {
 
-    const tipoSeleccionado = tipo.value;
+    const tipoSeleccionado =
+        tipo.value;
 
     if (
         tipoSeleccionado === "opcion_multiple" ||
         tipoSeleccionado === "seleccion_multiple"
     ) {
 
-        opciones.style.display = "block";
-        metodo.style.display = "none";
-        respuesta.style.display = "none";
+        opciones.style.display =
+            "block";
 
-        metodoCorreccion.disabled = true;
-        respuestaCorrecta.disabled = true;
+        metodo.style.display =
+            "none";
 
-        obtenerTextosOpciones().forEach(function (input) {
+        respuesta.style.display =
+            "none";
 
-            input.required = true;
+        metodoCorreccion.disabled =
+            true;
 
-        });
+        respuestaCorrecta.disabled =
+            true;
 
-        if (tipoSeleccionado === "seleccion_multiple") {
+        obtenerTextosOpciones()
+            .forEach(function (input) {
+
+                input.required = true;
+
+            });
+
+        if (
+            tipoSeleccionado ===
+            "seleccion_multiple"
+        ) {
 
             configurarSeleccionMultiple();
 
@@ -602,39 +824,36 @@ function actualizarFormulario() {
 
     } else {
 
-        opciones.style.display = "none";
-        metodo.style.display = "block";
-        respuesta.style.display = "block";
+        opciones.style.display =
+            "none";
 
-        metodoCorreccion.disabled = false;
-        respuestaCorrecta.disabled = false;
+        metodo.style.display =
+            "block";
 
-        obtenerTextosOpciones().forEach(function (input) {
+        respuesta.style.display =
+            "block";
 
-            input.required = false;
+        metodoCorreccion.disabled =
+            false;
 
-        });
+        respuestaCorrecta.disabled =
+            false;
 
-        if (tipoSeleccionado === "codigo") {
+        obtenerTextosOpciones()
+            .forEach(function (input) {
 
-            if (
-                metodoCorreccion.value !== "palabras_clave" &&
-                metodoCorreccion.value !== "ollama"
-            ) {
+                input.required = false;
 
-                metodoCorreccion.value = "ollama";
-
-            }
-
-        }
+            });
 
         if (
-            tipoSeleccionado === "respuesta_texto" &&
-            metodoCorreccion.value === "ollama" &&
-            respuestaCorrecta.value.trim() === ""
+            tipoSeleccionado === "codigo" &&
+            metodoCorreccion.value !== "palabras_clave" &&
+            metodoCorreccion.value !== "ollama"
         ) {
 
-            metodoCorreccion.value = "manual";
+            metodoCorreccion.value =
+                "ollama";
 
         }
 
@@ -646,9 +865,10 @@ function actualizarFormulario() {
 
 /*
 |--------------------------------------------------------------------------
-| Actualizar tipos correctos
-
+| Actualizar radios / checkbox
+|--------------------------------------------------------------------------
 */
+
 function actualizarTiposCorrecta() {
 
     const multiple =
@@ -656,52 +876,71 @@ function actualizarTiposCorrecta() {
 
     document
         .querySelectorAll(".bloque-opcion")
-        .forEach(function (bloque, indice) {
+        .forEach(
+            function (bloque, indice) {
 
-            const selector =
-                bloque.querySelector(".selector-correcta");
+                const selector =
+                    bloque.querySelector(
+                        ".selector-correcta"
+                    );
 
-            const texto =
-                bloque.querySelector(".texto-correcta");
+                const texto =
+                    bloque.querySelector(
+                        ".texto-correcta"
+                    );
 
-            selector.value = indice;
+                const titulo =
+                    bloque.querySelector(
+                        ".titulo-opcion"
+                    );
 
-            if (multiple) {
+                selector.value =
+                    indice;
 
-                selector.type = "checkbox";
-                selector.name = "correctas[]";
+                titulo.textContent =
+                    "Opción " + (indice + 1);
 
-                texto.textContent =
-                    "Es una respuesta correcta";
+                if (multiple) {
 
-            } else {
+                    selector.type =
+                        "checkbox";
 
-                selector.type = "radio";
-                selector.name = "correcta";
+                    selector.name =
+                        "correctas[]";
 
-                texto.textContent =
-                    "Es la respuesta correcta";
+                    texto.textContent =
+                        "Es una respuesta correcta";
+
+                } else {
+
+                    selector.type =
+                        "radio";
+
+                    selector.name =
+                        "correcta";
+
+                    texto.textContent =
+                        "Es la respuesta correcta";
+
+                }
 
             }
-
-            const titulo =
-                bloque.querySelector(".titulo-opcion");
-
-            titulo.textContent =
-                "Opción " + (indice + 1);
-
-        });
+        );
 
 }
 
-function agregarOpcion(
-    texto = "",
-    correcta = false,
-    id = 0
-) {
+/*
+|--------------------------------------------------------------------------
+| Agregar opción
+|--------------------------------------------------------------------------
+*/
+
+function agregarOpcion() {
 
     const contenedor =
-        document.getElementById("listaOpciones");
+        document.getElementById(
+            "listaOpciones"
+        );
 
     const indice =
         contenedor.children.length;
@@ -709,14 +948,15 @@ function agregarOpcion(
     const div =
         document.createElement("div");
 
-    div.className = "bloque-opcion";
+    div.className =
+        "bloque-opcion";
 
     div.innerHTML = `
 
         <input
             type="hidden"
             name="opcion_id[]"
-            value="${id}"
+            value="0"
         >
 
         <label class="titulo-opcion">
@@ -727,17 +967,17 @@ function agregarOpcion(
             type="text"
             name="opcion[]"
             class="input texto-opcion"
-            value="${texto}"
         >
 
         <label class="opcion">
 
             <input
                 class="selector-correcta"
-                ${correcta ? "checked" : ""}
             >
 
-            <span class="texto-correcta"></span>
+            <span
+                class="texto-correcta"
+            ></span>
 
         </label>
 
@@ -757,18 +997,28 @@ function agregarOpcion(
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Eliminar opción
+|--------------------------------------------------------------------------
+*/
+
 document.addEventListener(
     "click",
     function (e) {
 
         if (
-            !e.target.classList.contains("btnEliminar")
+            !e.target.classList.contains(
+                "btnEliminar"
+            )
         ) {
             return;
         }
 
         const bloques =
-            document.querySelectorAll(".bloque-opcion");
+            document.querySelectorAll(
+                ".bloque-opcion"
+            );
 
         if (bloques.length <= 2) {
 
@@ -777,7 +1027,6 @@ document.addEventListener(
             );
 
             return;
-
         }
 
         e.target
@@ -789,26 +1038,31 @@ document.addEventListener(
     }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Agregar opción
+|--------------------------------------------------------------------------
+*/
+
 document
     .getElementById("btnAgregarOpcion")
     .addEventListener(
         "click",
-        function () {
-
-            agregarOpcion();
-
-        }
+        agregarOpcion
     );
+
 /*
 |--------------------------------------------------------------------------
-| Validar antes de enviar
+| Validar
 |--------------------------------------------------------------------------
 */
+
 formPregunta.addEventListener(
     "submit",
     function (evento) {
 
-        const tipoSeleccionado = tipo.value;
+        const tipoSeleccionado =
+            tipo.value;
 
         if (
             tipoSeleccionado !== "opcion_multiple" &&
@@ -825,13 +1079,17 @@ formPregunta.addEventListener(
 
         let opcionesCompletas = 0;
 
-        textosOpciones.forEach(function (input) {
+        textosOpciones.forEach(
+            function (input) {
 
-            if (input.value.trim() !== "") {
-                opcionesCompletas++;
+                if (
+                    input.value.trim() !== ""
+                ) {
+                    opcionesCompletas++;
+                }
+
             }
-
-        });
+        );
 
         if (opcionesCompletas < 2) {
 
@@ -842,16 +1100,15 @@ formPregunta.addEventListener(
             );
 
             return;
-
         }
 
-        const seleccionadas = Array.from(
-            selectoresCorrectos
-        ).filter(function (selector) {
+        const seleccionadas =
+            Array.from(selectoresCorrectos)
+                .filter(function (selector) {
 
-            return selector.checked;
+                    return selector.checked;
 
-        });
+                });
 
         if (
             tipoSeleccionado === "opcion_multiple" &&
@@ -865,7 +1122,6 @@ formPregunta.addEventListener(
             );
 
             return;
-
         }
 
         if (
@@ -880,16 +1136,21 @@ formPregunta.addEventListener(
             );
 
             return;
-
         }
 
-        for (const selector of seleccionadas) {
+        for (
+            const selector of seleccionadas
+        ) {
 
             const bloque =
-                selector.closest(".bloque-opcion");
+                selector.closest(
+                    ".bloque-opcion"
+                );
 
             const textoOpcion =
-                bloque.querySelector(".texto-opcion");
+                bloque.querySelector(
+                    ".texto-opcion"
+                );
 
             if (
                 !textoOpcion ||
@@ -903,9 +1164,7 @@ formPregunta.addEventListener(
                 );
 
                 return;
-
             }
-
         }
 
         if (
@@ -919,12 +1178,16 @@ formPregunta.addEventListener(
                 "Debe existir por lo menos una opción incorrecta."
             );
 
-            return;
-
         }
 
     }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Eventos
+|--------------------------------------------------------------------------
+*/
 
 tipo.addEventListener(
     "change",
@@ -936,7 +1199,19 @@ metodoCorreccion.addEventListener(
     actualizarMetodoCorreccion
 );
 
+accionImagen.addEventListener(
+    "change",
+    actualizarImagen
+);
+
+/*
+|--------------------------------------------------------------------------
+| Inicializar
+|--------------------------------------------------------------------------
+*/
+
 actualizarFormulario();
+actualizarImagen();
 
 </script>
 

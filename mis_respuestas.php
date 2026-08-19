@@ -17,7 +17,7 @@ $examen = $conn->query("
 ")->fetch_assoc();
 
 if (!$examen) {
-    die("No existe examen publicado.");
+    die("No existe Formulario publicado.");
 }
 
 if ($examen['mostrar_respuestas'] == 0) {
@@ -35,7 +35,7 @@ $intento = $conn->query("
 ")->fetch_assoc();
 
 if (!$intento) {
-    die("Todavía no finalizaste el examen.");
+    die("Todavía no finalizaste el Formulario.");
 }
 
 $respuestas = $conn->query("

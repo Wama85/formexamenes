@@ -30,10 +30,10 @@ $examenes = $conn->query("
 <div class="container" style="max-width:1000px;">
     <div class="card">
 
-        <h1>Administrar Exámenes</h1>
+        <h1>Administrar Formularios</h1>
 
         <a href="crear_examen.php" class="btn">
-            Crear nuevo examen
+            Crear nuevo formulario
         </a>
 
         <br><br>
@@ -66,7 +66,16 @@ $examenes = $conn->query("
                             <a class="btn-mini" href="editar_examen.php?id=<?= $examen['id'] ?>">
                                 Editar
                             </a>
-
+<a
+    href="eliminar_formulario.php?id=<?= (int)$examen['id'] ?>"
+    class="btn-mini"
+    onclick="return confirm(
+        '¿Está seguro de eliminar este formulario? ' +
+        'Se eliminarán sus preguntas, respuestas, intentos e imágenes.'
+    );"
+>
+     Eliminar
+</a></br><br>
                             <a class="btn-mini" href="admin_preguntas.php?examen_id=<?= $examen['id'] ?>">
                                 Preguntas
                             </a>

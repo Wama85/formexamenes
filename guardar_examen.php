@@ -15,6 +15,11 @@ $titulo = $_POST['titulo'];
 $descripcion = $_POST['descripcion'];
 $tiempo_minutos = (int)$_POST['tiempo_minutos'];
 $cantidad_preguntas = (int)$_POST['cantidad_preguntas'];
+$cantidad_intentos = (int)$_POST['cantidad_intentos'];
+
+if ($cantidad_intentos < 1) {
+    $cantidad_intentos = 1;
+}
 $estado = $_POST['estado'];
 
 $activo = $estado == 'publicado' ? 1 : 0;
@@ -27,18 +32,20 @@ $stmt = $conn->prepare("
         descripcion,
         tiempo_minutos,
         cantidad_preguntas,
+        cantidad_intentos,
         activo,
         estado
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
 ");
 
 $stmt->bind_param(
-    "ssiiis",
+    "ssiiiis",
     $titulo,
     $descripcion,
     $tiempo_minutos,
     $cantidad_preguntas,
+    $cantidad_intentos,
     $activo,
     $estado
 );

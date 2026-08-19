@@ -15,7 +15,7 @@ if ($_SESSION['rol'] != 'docente') {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Crear Examen</title>
+    <title>Crear Formulario</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -23,7 +23,7 @@ if ($_SESSION['rol'] != 'docente') {
 <div class="container">
     <div class="card">
 
-        <h1>Crear Examen</h1>
+        <h1>Crear formulario</h1>
 
         <form action="guardar_examen.php" method="POST">
 
@@ -45,6 +45,16 @@ if ($_SESSION['rol'] != 'docente') {
     min="1"
     required
 >
+<label>Cantidad de intentos permitidos</label>
+
+<input
+    type="number"
+    name="cantidad_intentos"
+    class="input"
+    value="2"
+    min="1"
+    required
+>
             <label>Estado</label>
             <select name="estado" class="input">
                 <option value="borrador">Borrador</option>
@@ -55,7 +65,7 @@ if ($_SESSION['rol'] != 'docente') {
             <br><br>
 
             <button type="submit" class="btn">
-                Guardar examen
+                Guardar formulario
             </button>
 
         </form>
