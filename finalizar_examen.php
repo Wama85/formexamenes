@@ -68,17 +68,23 @@ try {
     |--------------------------------------------------------------------------
     */
 
-    $stmtVerificarIntento = $conn->prepare("
-        SELECT
-            id,
-            examen_id,
-            finalizado
-        FROM intentos
-        WHERE id = ?
-          AND usuario_id = ?
-        LIMIT 1
-        FOR UPDATE
-    ");
+  $stmtVerificarIntento = $conn->prepare("
+    SELECT
+        i.id,
+        i.examen_id,
+        i.finalizado,
+        i.fecha_inicio,
+        e.tipo_tiempo,
+        e.tiempo_minutos,
+        e.fecha_hora_limite
+    FROM intentos i
+    INNER JOIN examenes e
+        ON e.id = i.examen_id
+    WHERE i.id = ?
+      AND i.usuario_id = ?
+    LIMIT 1
+    FOR UPDATE
+");
 
     $stmtVerificarIntento->bind_param(
         "ii",
@@ -113,6 +119,88 @@ try {
     }
 
     $examen_id = (int) $intento['examen_id'];
+
+/*
+|--------------------------------------------------------------------------
+| VERIFICAR TIEMPO DEL FORMULARIO
+|--------------------------------------------------------------------------
+|
+| Esta comprobación se realiza en el servidor.
+| No dependemos únicamente del temporizador JavaScript.
+|
+*/
+
+$tipo_tiempo =
+    $intento['tipo_tiempo'] ?? 'individual';
+
+$fuera_de_tiempo = false;
+
+
+/*
+|--------------------------------------------------------------------------
+| HORA LÍMITE GLOBAL
+|--------------------------------------------------------------------------
+*/
+
+if ($tipo_tiempo === 'limite') {
+
+    $fecha_hora_limite =
+        $intento['fecha_hora_limite'] ?? null;
+
+    if (empty($fecha_hora_limite)) {
+        throw new Exception(
+            "El formulario no tiene configurada correctamente " .
+            "la hora límite."
+        );
+    }
+
+    $limite_timestamp =
+        strtotime($fecha_hora_limite);
+
+    if ($limite_timestamp === false) {
+        throw new Exception(
+            "La hora límite del formulario no es válida."
+        );
+    }
+
+    if (time() >= $limite_timestamp) {
+        $fuera_de_tiempo = true;
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TIEMPO INDIVIDUAL
+|--------------------------------------------------------------------------
+*/
+
+else {
+
+    $tiempo_minutos =
+        (int)($intento['tiempo_minutos'] ?? 0);
+
+    if ($tiempo_minutos < 1) {
+        $tiempo_minutos = 1;
+    }
+
+    $inicio_timestamp =
+        strtotime($intento['fecha_inicio']);
+
+    if ($inicio_timestamp === false) {
+        throw new Exception(
+            "No se pudo determinar la hora de inicio del intento."
+        );
+    }
+
+    $fin_timestamp =
+        $inicio_timestamp +
+        ($tiempo_minutos * 60);
+
+    if (time() >= $fin_timestamp) {
+        $fuera_de_tiempo = true;
+    }
+}
 
     /*
     |--------------------------------------------------------------------------

@@ -381,30 +381,79 @@ if ($preguntas->num_rows === 0) {
 
 /*
 |--------------------------------------------------------------------------
-| Calcular tiempo restante
+| CALCULAR TIEMPO RESTANTE
 |--------------------------------------------------------------------------
-|
-| Al recargar la página, el tiempo continúa desde fecha_inicio.
-|
 */
 
-$tiempo_minutos = (int) $examen['tiempo_minutos'];
+if ($tipo_tiempo === 'limite') {
 
-if ($tiempo_minutos < 1) {
-    $tiempo_minutos = 1;
+    /*
+    |--------------------------------------------------------------------------
+    | HORA LÍMITE GLOBAL
+    |--------------------------------------------------------------------------
+    |
+    | El tiempo restante depende únicamente de la hora límite
+    | configurada por el docente.
+    |
+    | Ejemplo:
+    |
+    | Hora límite: 14:50
+    | Alumno entra: 14:42
+    | Tiempo restante: 8 minutos
+    |
+    | Alumno entra: 14:48
+    | Tiempo restante: 2 minutos
+    |
+    */
+
+    $limite_timestamp =
+        strtotime($fecha_hora_limite);
+
+    $tiempo_restante =
+        $limite_timestamp - time();
+
+} else {
+
+    /*
+    |--------------------------------------------------------------------------
+    | TIEMPO INDIVIDUAL
+    |--------------------------------------------------------------------------
+    |
+    | Mantiene exactamente el funcionamiento anterior.
+    |
+    */
+
+    $tiempo_minutos =
+        (int)$examen['tiempo_minutos'];
+
+    if ($tiempo_minutos < 1) {
+        $tiempo_minutos = 1;
+    }
+
+    $tiempo_total_segundos =
+        $tiempo_minutos * 60;
+
+    $inicio_timestamp =
+        strtotime($fecha_inicio);
+
+    if ($inicio_timestamp === false) {
+        $inicio_timestamp = time();
+    }
+
+    $segundos_transcurridos =
+        time() - $inicio_timestamp;
+
+    $tiempo_restante =
+        $tiempo_total_segundos -
+        $segundos_transcurridos;
 }
 
-$tiempo_total_segundos = $tiempo_minutos * 60;
 
-$inicio_timestamp = strtotime($fecha_inicio);
-
-if ($inicio_timestamp === false) {
-    $inicio_timestamp = time();
-}
-
-$segundos_transcurridos = time() - $inicio_timestamp;
-
-$tiempo_restante = $tiempo_total_segundos - $segundos_transcurridos;
+/*
+|--------------------------------------------------------------------------
+| EVITAR TIEMPOS NEGATIVOS
+|--------------------------------------------------------------------------
+*/
 
 if ($tiempo_restante < 0) {
     $tiempo_restante = 0;
