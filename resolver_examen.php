@@ -57,7 +57,50 @@ $cantidad_intentos = (int)$examen['cantidad_intentos'];
 if ($cantidad_intentos < 1) {
     $cantidad_intentos = 1;
 }
+/*
+|--------------------------------------------------------------------------
+| CONTROL DE TIEMPO DEL FORMULARIO
+|--------------------------------------------------------------------------
+*/
 
+$tipo_tiempo =
+    $examen['tipo_tiempo'] ?? 'individual';
+
+$fecha_hora_limite =
+    $examen['fecha_hora_limite'] ?? null;
+
+
+/*
+|--------------------------------------------------------------------------
+| VERIFICAR HORA LÍMITE GLOBAL
+|--------------------------------------------------------------------------
+*/
+
+if ($tipo_tiempo === 'limite') {
+
+    if (empty($fecha_hora_limite)) {
+        die(
+            "Este formulario no tiene configurada correctamente " .
+            "la fecha y hora límite."
+        );
+    }
+
+    $limite_timestamp =
+        strtotime($fecha_hora_limite);
+
+    if ($limite_timestamp === false) {
+        die(
+            "La fecha y hora límite del formulario no es válida."
+        );
+    }
+
+    if (time() >= $limite_timestamp) {
+        die(
+            "El tiempo de este formulario ya terminó. " .
+            "Ya no puede iniciar ni continuar un intento."
+        );
+    }
+}
 /*
 |--------------------------------------------------------------------------
 | Buscar un intento abierto
@@ -381,6 +424,44 @@ if ($preguntas->num_rows === 0) {
 
 /*
 |--------------------------------------------------------------------------
+| RECUPERAR RESPUESTAS AUTOGUARDADAS
+|--------------------------------------------------------------------------
+*/
+
+$respuestas_guardadas = [];
+
+$stmtRespuestasGuardadas = $conn->prepare("
+    SELECT
+        pregunta_id,
+        respuesta
+    FROM respuestas
+    WHERE intento_id = ?
+");
+
+$stmtRespuestasGuardadas->bind_param(
+    "i",
+    $intento_id
+);
+
+$stmtRespuestasGuardadas->execute();
+
+$resultadoRespuestasGuardadas =
+    $stmtRespuestasGuardadas->get_result();
+
+while (
+    $filaRespuesta =
+    $resultadoRespuestasGuardadas->fetch_assoc()
+) {
+
+    $pregunta_id_guardada =
+        (int)$filaRespuesta['pregunta_id'];
+
+    $respuestas_guardadas[
+        $pregunta_id_guardada
+    ] = $filaRespuesta['respuesta'];
+}
+/*
+|--------------------------------------------------------------------------
 | CALCULAR TIEMPO RESTANTE
 |--------------------------------------------------------------------------
 */
@@ -579,22 +660,28 @@ if ($tiempo_restante < 0) {
                     <?php if ($pregunta['tipo'] === 'codigo'): ?>
 
                         <textarea
-                            name="pregunta_<?= $idPregunta ?>"
-                            rows="12"
-                            class="textarea-codigo"
-                            placeholder="Escriba aquí su código..."
-                        ></textarea>
+    name="pregunta_<?= $idPregunta ?>"
+    rows="12"
+    class="textarea-codigo"
+    data-pregunta-id="<?= $idPregunta ?>"
+    placeholder="Escriba aquí su código..."
+><?= htmlspecialchars(
+    $respuestas_guardadas[$idPregunta] ?? ''
+) ?></textarea>
 
                     <?php elseif (
                         $pregunta['tipo'] === 'respuesta_texto'
                     ): ?>
 
                         <textarea
-                            name="pregunta_<?= $idPregunta ?>"
-                            rows="5"
-                            class="textarea-codigo"
-                            placeholder="Escriba aquí su respuesta..."
-                        ></textarea>
+    name="pregunta_<?= $idPregunta ?>"
+    rows="5"
+    class="textarea-codigo"
+    data-pregunta-id="<?= $idPregunta ?>"
+    placeholder="Escriba aquí su respuesta..."
+><?= htmlspecialchars(
+    $respuestas_guardadas[$idPregunta] ?? ''
+) ?></textarea>
 
                     <?php else: ?>
 
@@ -620,7 +707,35 @@ if ($tiempo_restante < 0) {
                             $stmtOpciones->get_result();
 
                         ?>
+<?php
 
+$respuestaGuardada =
+    $respuestas_guardadas[$idPregunta] ?? '';
+
+$seleccionesGuardadas = [];
+
+if (
+    $pregunta['tipo'] ===
+    'seleccion_multiple'
+) {
+
+    $decodificada =
+        json_decode(
+            $respuestaGuardada,
+            true
+        );
+
+    if (is_array($decodificada)) {
+
+        $seleccionesGuardadas =
+            array_map(
+                'intval',
+                $decodificada
+            );
+    }
+}
+
+?>
                         <?php while ($opcion = $opciones->fetch_assoc()): ?>
 
     <label class="opcion">
@@ -636,10 +751,15 @@ if ($tiempo_restante < 0) {
         <?php else: ?>
 
             <input
-                type="radio"
-                name="pregunta_<?= $idPregunta ?>"
-                value="<?= (int) $opcion['id'] ?>"
-            >
+    type="radio"
+    name="pregunta_<?= $idPregunta ?>"
+    value="<?= (int)$opcion['id'] ?>"
+    data-pregunta-id="<?= $idPregunta ?>"
+    <?= (string)$respuestaGuardada ===
+        (string)$opcion['id']
+        ? 'checked'
+        : '' ?>
+>
 
         <?php endif; ?>
 
@@ -677,7 +797,223 @@ if ($tiempo_restante < 0) {
 let cambios = <?= $cambios_guardados ?>;
 let enviado = false;
 let tiempo = <?= $tiempo_restante ?>;
+/*
+|--------------------------------------------------------------------------
+| AUTOGUARDADO
+|--------------------------------------------------------------------------
+*/
 
+const intentoId = <?= (int)$intento_id ?>;
+
+const temporizadoresGuardado = {};
+
+
+/*
+|--------------------------------------------------------------------------
+| ENVIAR RESPUESTA AL SERVIDOR
+|--------------------------------------------------------------------------
+*/
+
+function autoguardarRespuesta(
+    preguntaId,
+    respuesta
+) {
+
+    if (enviado) {
+        return;
+    }
+
+    const datos = new FormData();
+
+    datos.append(
+        "intento_id",
+        intentoId
+    );
+
+    datos.append(
+        "pregunta_id",
+        preguntaId
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SELECCIÓN MÚLTIPLE
+    |--------------------------------------------------------------------------
+    */
+
+    if (Array.isArray(respuesta)) {
+
+        respuesta.forEach(
+            function(valor) {
+
+                datos.append(
+                    "respuesta[]",
+                    valor
+                );
+            }
+        );
+
+    } else {
+
+        datos.append(
+            "respuesta",
+            respuesta
+        );
+    }
+
+
+    fetch(
+        "autoguardar_respuesta.php",
+        {
+            method: "POST",
+            body: datos
+        }
+    )
+    .then(function(respuestaServidor) {
+
+        return respuestaServidor.json();
+
+    })
+    .then(function(resultado) {
+
+        if (!resultado.ok) {
+
+            console.error(
+                "No se pudo autoguardar:",
+                resultado.mensaje
+            );
+        }
+
+    })
+    .catch(function(error) {
+
+        console.error(
+            "Error de autoguardado:",
+            error
+        );
+    });
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TEXTAREA
+|--------------------------------------------------------------------------
+|
+| Esperamos un momento después de escribir para no hacer
+| una petición al servidor por cada tecla.
+|
+*/
+
+document
+    .querySelectorAll(
+        "textarea[data-pregunta-id]"
+    )
+    .forEach(function(campo) {
+
+        campo.addEventListener(
+            "input",
+            function() {
+
+                const preguntaId =
+                    this.dataset.preguntaId;
+
+                clearTimeout(
+                    temporizadoresGuardado[
+                        preguntaId
+                    ]
+                );
+
+                const campoActual = this;
+
+                temporizadoresGuardado[
+                    preguntaId
+                ] = setTimeout(
+                    function() {
+
+                        autoguardarRespuesta(
+                            preguntaId,
+                            campoActual.value
+                        );
+
+                    },
+                    700
+                );
+            }
+        );
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| RADIO
+|--------------------------------------------------------------------------
+*/
+
+document
+    .querySelectorAll(
+        'input[type="radio"][data-pregunta-id]'
+    )
+    .forEach(function(campo) {
+
+        campo.addEventListener(
+            "change",
+            function() {
+
+                autoguardarRespuesta(
+                    this.dataset.preguntaId,
+                    this.value
+                );
+            }
+        );
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| CHECKBOX
+|--------------------------------------------------------------------------
+*/
+
+document
+    .querySelectorAll(
+        'input[type="checkbox"][data-pregunta-id]'
+    )
+    .forEach(function(campo) {
+
+        campo.addEventListener(
+            "change",
+            function() {
+
+                const preguntaId =
+                    this.dataset.preguntaId;
+
+                const seleccionadas = [];
+
+                document
+                    .querySelectorAll(
+                        'input[type="checkbox"]' +
+                        '[data-pregunta-id="' +
+                        preguntaId +
+                        '"]:checked'
+                    )
+                    .forEach(
+                        function(check) {
+
+                            seleccionadas.push(
+                                check.value
+                            );
+                        }
+                    );
+
+                autoguardarRespuesta(
+                    preguntaId,
+                    seleccionadas
+                );
+            }
+        );
+    });
 /*
 Evita que visibilitychange y blur cuenten dos veces
 el mismo cambio de ventana.

@@ -154,7 +154,34 @@ if ($_SESSION['rol'] != 'docente') {
                 min="1"
                 required
             >
+<!-- ============================= -->
+<!-- CRITERIO DE NOTA              -->
+<!-- ============================= -->
 
+<label>
+    Criterio para la nota final
+</label>
+
+<select
+    name="criterio_nota"
+    class="input"
+    required
+>
+    <option value="mejor_nota" selected>
+        Mejor nota
+    </option>
+
+    <option value="ultimo_intento">
+        Último intento
+    </option>
+</select>
+
+<small>
+    Define qué calificación se tomará como nota válida
+    cuando el estudiante tenga más de un intento.
+</small>
+
+<br><br>
 
             <!-- ============================= -->
             <!-- ESTADO                        -->

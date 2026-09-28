@@ -34,6 +34,8 @@ $estado =
 $tipo_tiempo =
     $_POST['tipo_tiempo'] ?? 'individual';
 
+$criterio_nota =
+    $_POST['criterio_nota'] ?? 'mejor_nota';
 
 /*
 |--------------------------------------------------------------------------
@@ -59,7 +61,12 @@ if (
 ) {
     $tipo_tiempo = 'individual';
 }
-
+if (
+    $criterio_nota !== 'mejor_nota' &&
+    $criterio_nota !== 'ultimo_intento'
+) {
+    $criterio_nota = 'mejor_nota';
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -161,7 +168,6 @@ $activo =
 | GUARDAR
 |--------------------------------------------------------------------------
 */
-
 $stmt = $conn->prepare("
     INSERT INTO examenes(
         titulo,
@@ -172,9 +178,10 @@ $stmt = $conn->prepare("
         activo,
         estado,
         tipo_tiempo,
-        fecha_hora_limite
+        fecha_hora_limite,
+        criterio_nota
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 
 if (!$stmt) {
@@ -186,7 +193,7 @@ if (!$stmt) {
 
 
 $stmt->bind_param(
-    "ssiiiisss",
+    "ssiiiissss",
     $titulo,
     $descripcion,
     $tiempo_minutos,
@@ -195,7 +202,8 @@ $stmt->bind_param(
     $activo,
     $estado,
     $tipo_tiempo,
-    $fecha_hora_limite
+    $fecha_hora_limite,
+    $criterio_nota
 );
 
 

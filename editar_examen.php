@@ -300,7 +300,44 @@ if (!empty($examen['fecha_hora_limite'])) {
                 ) ?>"
                 required
             >
+<!-- ============================= -->
+<!-- CRITERIO DE NOTA              -->
+<!-- ============================= -->
 
+<label>
+    Criterio para la nota final
+</label>
+
+<select
+    name="criterio_nota"
+    class="input"
+    required
+>
+    <option
+        value="mejor_nota"
+        <?= ($examen['criterio_nota'] ?? 'mejor_nota') === 'mejor_nota'
+            ? 'selected'
+            : '' ?>
+    >
+        Mejor nota
+    </option>
+
+    <option
+        value="ultimo_intento"
+        <?= ($examen['criterio_nota'] ?? 'mejor_nota') === 'ultimo_intento'
+            ? 'selected'
+            : '' ?>
+    >
+        Último intento
+    </option>
+</select>
+
+<small>
+    Define qué calificación se tomará como nota válida
+    cuando el estudiante tenga más de un intento.
+</small>
+
+<br><br>
 
             <!-- ============================= -->
             <!-- ESTADO                        -->

@@ -51,7 +51,6 @@ $stmtExamenes = $conn->prepare("
 $stmtExamenes->execute();
 
 $examenes = $stmtExamenes->get_result();
-
 /*
 |--------------------------------------------------------------------------
 | Obtener examen seleccionado y sus resultados
@@ -68,7 +67,8 @@ if ($examen_id > 0) {
             id,
             titulo,
             estado,
-            mostrar_respuestas
+            mostrar_respuestas,
+            criterio_nota
         FROM examenes
         WHERE id = ?
           AND estado = 'publicado'
@@ -92,28 +92,127 @@ if ($examen_id > 0) {
         die("El Formulario no existe o ya no está publicado.");
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Obtener resultados del examen seleccionado
+    | Criterio utilizado para determinar la nota válida
     |--------------------------------------------------------------------------
     */
 
-    $stmtResultados = $conn->prepare("
-        SELECT
-            i.id,
-            u.nombre,
-            u.correo,
-            i.nota,
-            i.fecha_inicio,
-            i.fecha_fin,
-            i.cambios_pestana
-        FROM intentos i
-        INNER JOIN usuarios u
-            ON u.id = i.usuario_id
-        WHERE i.finalizado = 1
-          AND i.examen_id = ?
-        ORDER BY i.id DESC
-    ");
+    $criterio_nota =
+        $examenSeleccionado['criterio_nota']
+        ?? 'mejor_nota';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ÚLTIMO INTENTO
+    |--------------------------------------------------------------------------
+    */
+
+    if ($criterio_nota === 'ultimo_intento') {
+
+        $stmtResultados = $conn->prepare("
+            SELECT
+                i.id,
+                i.usuario_id,
+                i.numero_intento,
+                u.nombre,
+                u.correo,
+                i.nota,
+                i.fecha_inicio,
+                i.fecha_fin,
+                i.cambios_pestana,
+
+                (
+                    SELECT COUNT(*)
+                    FROM intentos ic
+                    WHERE ic.usuario_id = i.usuario_id
+                      AND ic.examen_id = i.examen_id
+                      AND ic.finalizado = 1
+                ) AS total_intentos
+
+            FROM intentos i
+
+            INNER JOIN usuarios u
+                ON u.id = i.usuario_id
+
+            WHERE i.finalizado = 1
+              AND i.examen_id = ?
+
+              AND i.numero_intento = (
+
+                    SELECT MAX(i2.numero_intento)
+
+                    FROM intentos i2
+
+                    WHERE i2.usuario_id = i.usuario_id
+                      AND i2.examen_id = i.examen_id
+                      AND i2.finalizado = 1
+              )
+
+            ORDER BY u.nombre ASC
+        ");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MEJOR NOTA
+    |--------------------------------------------------------------------------
+    */
+
+    } else {
+
+        $stmtResultados = $conn->prepare("
+            SELECT
+                i.id,
+                i.usuario_id,
+                i.numero_intento,
+                u.nombre,
+                u.correo,
+                i.nota,
+                i.fecha_inicio,
+                i.fecha_fin,
+                i.cambios_pestana,
+
+                (
+                    SELECT COUNT(*)
+                    FROM intentos ic
+                    WHERE ic.usuario_id = i.usuario_id
+                      AND ic.examen_id = i.examen_id
+                      AND ic.finalizado = 1
+                ) AS total_intentos
+
+            FROM intentos i
+
+            INNER JOIN usuarios u
+                ON u.id = i.usuario_id
+
+            WHERE i.finalizado = 1
+              AND i.examen_id = ?
+
+              AND i.id = (
+
+                    SELECT i2.id
+
+                    FROM intentos i2
+
+                    WHERE i2.usuario_id = i.usuario_id
+                      AND i2.examen_id = i.examen_id
+                      AND i2.finalizado = 1
+
+                    ORDER BY
+                        i2.nota DESC,
+                        i2.numero_intento DESC,
+                        i2.id DESC
+
+                    LIMIT 1
+              )
+
+            ORDER BY u.nombre ASC
+        ");
+    }
+
 
     $stmtResultados->bind_param(
         "i",
@@ -125,7 +224,6 @@ if ($examen_id > 0) {
     $resultados =
         $stmtResultados->get_result();
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -245,100 +343,132 @@ if ($examen_id > 0) {
             <br><br>
 
             <?php if (
-                $resultados &&
-                $resultados->num_rows > 0
+    $resultados &&
+    $resultados->num_rows > 0
+): ?>
+
+    <p>
+        <strong>Criterio de nota:</strong>
+
+        <?php if (
+            ($examenSeleccionado['criterio_nota'] ?? 'mejor_nota')
+            === 'ultimo_intento'
+        ): ?>
+
+            Último intento
+
+        <?php else: ?>
+
+            Mejor nota
+
+        <?php endif; ?>
+    </p>
+
+    <br>
+
+    <table class="tabla">
+
+        <thead>
+
+            <tr>
+                <th>Alumno</th>
+                <th>Correo</th>
+                <th>Intentos</th>
+                <th>Intento válido</th>
+                <th>Nota válida</th>
+                <th>Cambios</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Detalle</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <?php while (
+                $fila = $resultados->fetch_assoc()
             ): ?>
 
-                <table class="tabla">
+                <tr>
 
-                    <thead>
+                    <td>
+                        <?= htmlspecialchars(
+                            $fila['nombre']
+                        ) ?>
+                    </td>
 
-                        <tr>
-                            <th>Alumno</th>
-                            <th>Correo</th>
-                            <th>Nota</th>
-                            <th>Cambios</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                            <th>Detalle</th>
-                        </tr>
+                    <td>
+                        <?= htmlspecialchars(
+                            $fila['correo']
+                        ) ?>
+                    </td>
 
-                    </thead>
+                    <td>
+                        <?= (int) $fila['total_intentos'] ?>
+                    </td>
 
-                    <tbody>
+                    <td>
+                        Intento <?= (int) $fila['numero_intento'] ?>
+                    </td>
 
-                        <?php while (
-                            $fila = $resultados->fetch_assoc()
-                        ): ?>
+                    <td>
+                        <strong>
+                            <?= number_format(
+                                (float) $fila['nota'],
+                                2
+                            ) ?>
+                        </strong>
+                    </td>
 
-                            <tr>
+                    <td>
+                        <?= (int) $fila['cambios_pestana'] ?>
+                    </td>
 
-                                <td>
-                                    <?= htmlspecialchars(
-                                        $fila['nombre']
-                                    ) ?>
-                                </td>
+                    <td>
+                        <?= htmlspecialchars(
+                            $fila['fecha_inicio']
+                        ) ?>
+                    </td>
 
-                                <td>
-                                    <?= htmlspecialchars(
-                                        $fila['correo']
-                                    ) ?>
-                                </td>
+                    <td>
+                        <?= htmlspecialchars(
+                            $fila['fecha_fin']
+                        ) ?>
+                    </td>
 
-                                <td>
-                                    <?= htmlspecialchars(
-                                        $fila['nota']
-                                    ) ?>
-                                </td>
+                    <td>
 
-                                <td>
-                                    <?= (int) $fila['cambios_pestana'] ?>
-                                </td>
+                        <a
+                            href="detalle_resultado.php?id=<?= (int) $fila['id'] ?>"
+                            class="btn-mini"
+                        >
+                            Ver
+                        </a>
 
-                                <td>
-                                    <?= htmlspecialchars(
-                                        $fila['fecha_inicio']
-                                    ) ?>
-                                </td>
+                    </td>
 
-                                <td>
-                                    <?= htmlspecialchars(
-                                        $fila['fecha_fin']
-                                    ) ?>
-                                </td>
+                </tr>
 
-                                <td>
+            <?php endwhile; ?>
 
-                                    <a
-                                        href="detalle_resultado.php?id=<?= (int) $fila['id'] ?>"
-                                        class="btn-mini"
-                                    >
-                                        Ver
-                                    </a>
+        </tbody>
 
-                                </td>
+    </table>
 
-                            </tr>
+<?php else: ?>
 
-                        <?php endwhile; ?>
+    <div
+        style="
+            padding:12px;
+            background:#f3f3f3;
+            border-radius:6px;
+        "
+    >
+        Este Formulario todavía no tiene resultados finalizados.
+    </div>
 
-                    </tbody>
-
-                </table>
-
-            <?php else: ?>
-
-                <div
-                    style="
-                        padding:12px;
-                        background:#f3f3f3;
-                        border-radius:6px;
-                    "
-                >
-                    Este Formulario todavía no tiene resultados finalizados.
-                </div>
-
-            <?php endif; ?>
+<?php endif; ?>
 
         <?php else: ?>
 

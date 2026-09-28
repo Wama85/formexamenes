@@ -202,6 +202,133 @@ else {
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| RECUPERAR RESPUESTAS AUTOGUARDADAS
+|--------------------------------------------------------------------------
+|
+| Si una respuesta no llegó mediante POST, intentamos recuperarla
+| desde la tabla respuestas.
+|
+| Esto permite utilizar el trabajo que fue autoguardado.
+|
+*/
+
+$stmtAutoguardadas = $conn->prepare("
+    SELECT
+        r.pregunta_id,
+        r.respuesta,
+        p.tipo
+    FROM respuestas r
+    INNER JOIN preguntas p
+        ON p.id = r.pregunta_id
+    INNER JOIN intento_preguntas ip
+        ON ip.intento_id = r.intento_id
+       AND ip.pregunta_id = r.pregunta_id
+    WHERE r.intento_id = ?
+");
+
+$stmtAutoguardadas->bind_param(
+    "i",
+    $intento_id
+);
+
+$stmtAutoguardadas->execute();
+
+$resultadoAutoguardadas =
+    $stmtAutoguardadas->get_result();
+
+
+while (
+    $respuestaGuardada =
+    $resultadoAutoguardadas->fetch_assoc()
+) {
+
+    $preguntaGuardadaId =
+        (int)$respuestaGuardada['pregunta_id'];
+
+    $campoGuardado =
+        "pregunta_" . $preguntaGuardadaId;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SI YA LLEGÓ POR POST, EL POST TIENE PRIORIDAD
+    |--------------------------------------------------------------------------
+    */
+
+    if (isset($_POST[$campoGuardado])) {
+        continue;
+    }
+
+
+    $valorGuardado =
+        $respuestaGuardada['respuesta'] ?? '';
+
+    $tipoPreguntaGuardada =
+        $respuestaGuardada['tipo'] ?? '';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SELECCIÓN MÚLTIPLE
+    |--------------------------------------------------------------------------
+    |
+    | El autoguardado almacena los IDs como JSON:
+    |
+    | [2,4,6]
+    |
+    */
+
+    if (
+        $tipoPreguntaGuardada ===
+        'seleccion_multiple'
+    ) {
+
+        $selecciones =
+            json_decode(
+                $valorGuardado,
+                true
+            );
+
+        if (is_array($selecciones)) {
+
+            $selecciones = array_values(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $selecciones
+                    ),
+                    function ($id) {
+                        return $id > 0;
+                    }
+                )
+            );
+
+            if (count($selecciones) > 0) {
+
+                $_POST[$campoGuardado] =
+                    $selecciones;
+            }
+        }
+
+        continue;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEXTO, CÓDIGO Y SELECCIÓN ÚNICA
+    |--------------------------------------------------------------------------
+    */
+
+    if (trim((string)$valorGuardado) !== '') {
+
+        $_POST[$campoGuardado] =
+            $valorGuardado;
+    }
+}
+
     /*
     |--------------------------------------------------------------------------
     | Verificar si ya existen respuestas
@@ -1129,111 +1256,10 @@ $stmtGuardarRespuesta->execute();
     }
 
     /*
-|--------------------------------------------------------------------------
-| Eliminar intentos anteriores del mismo alumno y formulario
-|--------------------------------------------------------------------------
-*/
-
-$stmtIntentosAnteriores = $conn->prepare("
-    SELECT id
-FROM intentos
-WHERE usuario_id = ?
-  AND examen_id = ?
-  AND numero_intento < (
-        SELECT numero_intento
-        FROM intentos
-        WHERE id = ?
-    )
-");
-
-$stmtIntentosAnteriores->bind_param(
-    "iii",
-    $usuario_id,
-    $examen_id,
-    $intento_id
-);
-
-$stmtIntentosAnteriores->execute();
-
-$resultadoIntentosAnteriores =
-    $stmtIntentosAnteriores->get_result();
-
-while (
-    $intentoAnterior =
-    $resultadoIntentosAnteriores->fetch_assoc()
-) {
-
-    $intentoAnteriorId =
-        (int) $intentoAnterior['id'];
-
-    /*
-    Eliminar eventos de seguridad.
+    |--------------------------------------------------------------------------
+    | Guardar cambios en la base de datos
+    |--------------------------------------------------------------------------
     */
-
-    $stmtEliminarEventos = $conn->prepare("
-        DELETE FROM eventos_seguridad
-        WHERE intento_id = ?
-    ");
-
-    $stmtEliminarEventos->bind_param(
-        "i",
-        $intentoAnteriorId
-    );
-
-    $stmtEliminarEventos->execute();
-
-    /*
-    Eliminar respuestas.
-    */
-
-    $stmtEliminarRespuestasAnteriores = $conn->prepare("
-        DELETE FROM respuestas
-        WHERE intento_id = ?
-    ");
-
-    $stmtEliminarRespuestasAnteriores->bind_param(
-        "i",
-        $intentoAnteriorId
-    );
-
-    $stmtEliminarRespuestasAnteriores->execute();
-
-    /*
-    Eliminar preguntas asignadas.
-    */
-
-    $stmtEliminarPreguntasAnteriores = $conn->prepare("
-        DELETE FROM intento_preguntas
-        WHERE intento_id = ?
-    ");
-
-    $stmtEliminarPreguntasAnteriores->bind_param(
-        "i",
-        $intentoAnteriorId
-    );
-
-    $stmtEliminarPreguntasAnteriores->execute();
-
-    /*
-    Eliminar el intento anterior.
-    */
-
-    $stmtEliminarIntentoAnterior = $conn->prepare("
-        DELETE FROM intentos
-        WHERE id = ?
-          AND usuario_id = ?
-          AND examen_id = ?
-    ");
-
-    $stmtEliminarIntentoAnterior->bind_param(
-        "iii",
-        $intentoAnteriorId,
-        $usuario_id,
-        $examen_id
-    );
-
-    $stmtEliminarIntentoAnterior->execute();
-}
 
     $conn->commit();
 

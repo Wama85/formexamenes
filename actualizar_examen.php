@@ -53,6 +53,10 @@ $tipo_tiempo =
     isset($_POST['tipo_tiempo'])
         ? $_POST['tipo_tiempo']
         : 'individual';
+$criterio_nota =
+    isset($_POST['criterio_nota'])
+        ? $_POST['criterio_nota']
+        : 'mejor_nota';
 
 $mostrar_respuestas =
     isset($_POST['mostrar_respuestas'])
@@ -132,7 +136,26 @@ if (
     $tipo_tiempo = 'individual';
 }
 
+/*
+|--------------------------------------------------------------------------
+| VALIDAR CRITERIO DE NOTA
+|--------------------------------------------------------------------------
+*/
 
+$criteriosNotaPermitidos = [
+    'mejor_nota',
+    'ultimo_intento'
+];
+
+if (
+    !in_array(
+        $criterio_nota,
+        $criteriosNotaPermitidos,
+        true
+    )
+) {
+    $criterio_nota = 'mejor_nota';
+}
 /*
 |--------------------------------------------------------------------------
 | CONTROL DE TIEMPO
@@ -247,7 +270,8 @@ $stmt = $conn->prepare("
         mostrar_respuestas = ?,
         mostrar_preguntas_antes = ?,
         tipo_tiempo = ?,
-        fecha_hora_limite = ?
+        fecha_hora_limite = ?,
+        criterio_nota = ?
     WHERE id = ?
 ");
 
@@ -276,12 +300,13 @@ if (!$stmt) {
 | i mostrar_preguntas_antes
 | s tipo_tiempo
 | s fecha_hora_limite
+| s criterio_nota
 | i id
 |
 */
 
 $stmt->bind_param(
-    "ssiiiisiissi",
+    "ssiiiisiisssi",
     $titulo,
     $descripcion,
     $tiempo_minutos,
@@ -293,6 +318,7 @@ $stmt->bind_param(
     $mostrar_preguntas_antes,
     $tipo_tiempo,
     $fecha_hora_limite,
+    $criterio_nota,
     $id
 );
 
