@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# ------------------------------------------------------------
+# No modificar archivos o carpetas que existen físicamente
+# ------------------------------------------------------------
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ------------------------------------------------------------
+# Enviar las rutas al Front Controller
+# ------------------------------------------------------------
+
+RewriteRule ^(.*)$ public/index.php [QSA,L]

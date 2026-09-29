@@ -1,0 +1,265 @@
+/* =========================================================
+   SISFORMULARIOS - REPORTES
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #1f2937;
+}
+
+.contenedor {
+    width: min(1100px, 92%);
+    margin: 40px auto;
+}
+
+
+/* =========================================================
+   CABECERA
+   ========================================================= */
+
+.cabecera-pagina {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.cabecera-pagina h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+}
+
+.cabecera-pagina p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.acciones-cabecera {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   BOTONES
+   ========================================================= */
+
+.btn-volver,
+.btn-exportar,
+.btn-seleccion {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.btn-volver {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.btn-exportar {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.btn-seleccion {
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn-volver:hover,
+.btn-exportar:hover,
+.btn-seleccion:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   PANEL
+   ========================================================= */
+
+.panel-reportes {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 25px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+}
+
+.panel-reportes h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 21px;
+}
+
+.panel-reportes > p {
+    margin-top: 0;
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   CONTROLES DE SELECCIÓN
+   ========================================================= */
+
+.controles-seleccion {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 22px 0;
+}
+
+
+/* =========================================================
+   LISTA DE FORMULARIOS
+   ========================================================= */
+
+.lista-formularios {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.reporte-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
+}
+
+.reporte-item:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.reporte-item input[type="checkbox"] {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.reporte-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.reporte-titulo {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.reporte-detalles {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.acciones-reporte {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+
+/* =========================================================
+   SIN FORMULARIOS
+   ========================================================= */
+
+.sin-formularios {
+    padding: 30px;
+    text-align: center;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 10px;
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .contenedor {
+        width: 94%;
+        margin: 25px auto;
+    }
+
+    .cabecera-pagina {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acciones-cabecera {
+        width: 100%;
+    }
+
+    .btn-volver {
+        width: 100%;
+    }
+
+    .panel-reportes {
+        padding: 18px;
+    }
+
+    .controles-seleccion {
+        flex-direction: column;
+    }
+
+    .btn-seleccion {
+        width: 100%;
+    }
+
+    .reporte-item {
+        align-items: flex-start;
+    }
+
+    .acciones-reporte {
+        display: block;
+    }
+
+    .btn-exportar {
+        width: 100%;
+    }
+}

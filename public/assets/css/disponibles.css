@@ -1,0 +1,425 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f7fb;
+    color: #1f2937;
+}
+
+.pagina-formularios {
+    width: min(1100px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 40px 0 60px;
+}
+
+
+/* =========================================================
+   CABECERA
+   ========================================================= */
+
+.encabezado-formularios {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.encabezado-formularios h1 {
+    margin: 0 0 7px;
+    color: #111827;
+    font-size: 30px;
+}
+
+.encabezado-formularios p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.grid-formularios {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(290px, 1fr)
+        );
+
+    gap: 22px;
+}
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.card-formulario {
+    display: flex;
+    flex-direction: column;
+
+    min-height: 300px;
+    padding: 22px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04);
+
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.card-formulario:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================================
+   TÍTULO Y DESCRIPCIÓN
+   ========================================================= */
+
+.card-formulario-header {
+    margin-bottom: 20px;
+}
+
+.card-formulario-header h2 {
+    margin: 0 0 10px;
+
+    color: #111827;
+
+    font-size: 19px;
+    line-height: 1.35;
+}
+
+.card-formulario-header p {
+    margin: 0;
+
+    color: #6b7280;
+
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   DATOS
+   ========================================================= */
+
+.card-formulario-datos {
+    display: grid;
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+}
+
+.card-formulario-datos > div {
+    padding: 11px 8px;
+
+    background: #f8fafc;
+
+    border-radius: 9px;
+
+    text-align: center;
+}
+
+.card-formulario-datos span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+.card-formulario-datos strong {
+    color: #111827;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.acciones-card {
+    margin-top: auto;
+    padding-top: 18px;
+
+    border-top: 1px solid #f0f1f3;
+}
+
+.btn-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 42px;
+
+    padding: 0 16px;
+
+    border-radius: 9px;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.btn-card-principal {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.btn-card-principal:hover {
+    background: #1d4ed8;
+}
+
+
+/* =========================================================
+   SIN FORMULARIOS
+   ========================================================= */
+
+.estado-vacio {
+    padding: 50px 25px;
+
+    background: #ffffff;
+
+    border: 1px dashed #d1d5db;
+    border-radius: 16px;
+
+    text-align: center;
+}
+
+.estado-vacio h2 {
+    margin: 0 0 8px;
+
+    color: #111827;
+
+    font-size: 20px;
+}
+
+.estado-vacio p {
+    margin: 0;
+
+    color: #6b7280;
+}
+
+.btn-card-secundario {
+    margin-top: 9px;
+
+    background: #f3f4f6;
+    color: #374151;
+
+    border: 1px solid #e5e7eb;
+}
+
+.btn-card-secundario:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+/* =========================================================
+   CERRAR SESIÓN
+   ========================================================= */
+
+.btn-cerrar-sesion {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 11px 18px;
+
+    background: #dc2626;
+    color: #ffffff;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.btn-cerrar-sesion:hover {
+    background: #b91c1c;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+/* =========================================================
+   MODAL - INTENTOS AGOTADOS
+   ========================================================= */
+
+button.btn-card {
+    font-family: inherit;
+    border: none;
+}
+
+.modal-intentos {
+    position: fixed;
+    inset: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(0, 0, 0, 0.55);
+
+    z-index: 9999;
+}
+
+.modal-intentos.activo {
+    display: flex;
+}
+
+.modal-intentos-contenido {
+    width: 100%;
+    max-width: 430px;
+
+    padding: 30px;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 50px
+        rgba(0, 0, 0, 0.20);
+}
+
+.modal-intentos-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 58px;
+    height: 58px;
+
+    margin: 0 auto 18px;
+
+    background: #fee2e2;
+    color: #b91c1c;
+
+    border-radius: 50%;
+
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.modal-intentos-contenido h2 {
+    margin: 0 0 12px;
+
+    color: #111827;
+}
+
+.modal-intentos-contenido p {
+    line-height: 1.6;
+
+    color: #4b5563;
+}
+
+#modalIntentosTitulo {
+    margin-bottom: 5px;
+
+    color: #111827;
+
+    font-weight: 700;
+}
+
+.btn-modal-entendido {
+    width: 100%;
+
+    margin-top: 15px;
+    padding: 12px 20px;
+
+    background: #2563eb;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.btn-modal-entendido:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 600px) {
+
+    .btn-cerrar-sesion {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .pagina-formularios {
+        width: calc(100% - 24px);
+        padding-top: 25px;
+    }
+
+    .encabezado-formularios {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .encabezado-formularios h1 {
+        font-size: 25px;
+    }
+
+    .grid-formularios {
+        grid-template-columns: 1fr;
+    }
+
+    .card-formulario {
+        min-height: auto;
+    }
+}
+
+
+@media (max-width: 420px) {
+
+    .card-formulario-datos {
+        grid-template-columns: 1fr;
+    }
+}

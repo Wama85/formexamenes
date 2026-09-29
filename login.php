@@ -99,7 +99,20 @@ $_SESSION['nombre'] = $nombre;
 $_SESSION['correo'] = $correo;
 $_SESSION['rol'] = $rol;
 
-// 7. REDIRECCIÓN
-header("Location: dashboard.php");
+// 7. REDIRECCIÓN SEGÚN ROL
+
+if ($rol === 'docente') {
+
+    header(
+        'Location: /formexamenes/formularios'
+    );
+
+    exit;
+}
+
+header(
+    'Location: /formexamenes/formularios/disponibles'
+);
+
 exit;
 ?>
